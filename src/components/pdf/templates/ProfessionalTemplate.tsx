@@ -15,8 +15,6 @@ import {
     StyleSheet,
     Font,
     Link,
-    Svg,
-    Path,
 } from "@react-pdf/renderer";
 import type { ResumeData, ThemeConfig } from "@/store/useResumeStore";
 
@@ -541,14 +539,14 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
 
 import type { ResumeTemplate } from "@/store/useResumeStore";
 import { CreativeTemplate } from "./CreativeTemplate";
+import { AcademicTemplate } from "./AcademicTemplate";
 
 type TemplateComponent = (props: ProfessionalTemplateProps) => React.ReactElement;
 
 export const TEMPLATE_REGISTRY: Record<ResumeTemplate, TemplateComponent> = {
     professional: ProfessionalTemplate,
     creative: CreativeTemplate,
-    // academic:     AcademicTemplate,   // serif, wider margins — add when built
-    academic: ProfessionalTemplate,
+    academic: AcademicTemplate,
 };
 
 export function getTemplate(template: ResumeTemplate): TemplateComponent {
