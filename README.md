@@ -1,36 +1,158 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ResumeForge
+
+An AI-powered resume builder that lets you create, edit, and tailor resumes to job descriptions — with a live PDF preview and one-click export.
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
+![Supabase](https://img.shields.io/badge/Supabase-auth%20%2B%20db-green?logo=supabase)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38bdf8?logo=tailwindcss)
+
+---
+
+## Features
+
+- **Live PDF preview** — see your resume update in real time as you type
+- **AI tailoring** — paste a job description and let Gemini rewrite your bullets, adjust skills, and score your match
+- **Multiple templates** — Professional, Creative, and Academic layouts
+- **Theme presets** — switch fonts and color schemes instantly
+- **Auto-save** — changes sync to the database as you edit
+- **Magic link auth** — passwordless sign-in via Supabase
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS v4 |
+| State | Zustand + Immer |
+| PDF | @react-pdf/renderer |
+| Database | Supabase (Postgres + RLS) |
+| Auth | Supabase Auth (magic link / OTP) |
+| AI | Google Gemini (`@google/generative-ai`) |
+| Animations | Framer Motion |
+| Deployment | Vercel |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- A [Supabase](https://supabase.com) project
+- A [Google AI Studio](https://aistudio.google.com) API key (Gemini)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/YOUR_USERNAME/resumeforge.git
+cd resumeforge
+npm install
+```
+
+### 2. Set up environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+| Variable | Where to find it |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → Data API → Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API → Legacy anon key |
+| `GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+
+### 3. Run the database migration
+
+In your Supabase dashboard, go to **SQL Editor → New query**, paste the contents of `supabase/migrations/0001_initial_schema.sql`, and click **Run**.
+
+This creates three tables: `resumes`, `plan_limits`, and `ai_tailor_logs`, all with Row Level Security enabled.
+
+### 4. Configure Supabase Auth
+
+In **Supabase → Authentication → URL Configuration**:
+
+- **Site URL:** `http://localhost:3000`
+- **Redirect URLs:** `http://localhost:3000/auth/callback`
+
+### 5. Start the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment (Vercel)
 
-## Learn More
+1. Push to GitHub and import the repo in [vercel.com](https://vercel.com)
+2. Add the three environment variables in **Vercel → Settings → Environment Variables**
+3. Deploy
 
-To learn more about Next.js, take a look at the following resources:
+Then update Supabase Auth URLs to your production domain:
+- **Site URL:** `https://your-app.vercel.app`
+- **Redirect URLs:** `https://your-app.vercel.app/auth/callback` and `https://*.vercel.app/auth/callback`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── page.tsx                        # Dashboard
+│   ├── login/page.tsx                  # Magic link login
+│   ├── editor/[id]/page.tsx            # Resume editor
+│   ├── auth/callback/route.ts          # Auth callback (PKCE exchange)
+│   ├── _actions/create-resume.ts       # Server action — create resume
+│   └── api/
+│       ├── resumes/                    # CRUD routes
+│       └── cv/tailor/                  # AI tailoring endpoint
+├── components/
+│   └── pdf/templates/
+│       └── ProfessionalTemplate.tsx    # react-pdf resume templates
+├── store/
+│   └── useResumeStore.ts               # Zustand store (resume data + theme)
+└── lib/
+    └── supabase/
+        ├── client.ts                   # Browser Supabase client
+        └── server.ts                   # Server Supabase client
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Schema
+
+### `resumes`
+Stores resume content and theme config per user. Full RLS — users can only access their own rows.
+
+### `plan_limits`
+One row per user, created automatically on signup. Tracks subscription tier and AI usage limits. Written by Stripe webhook (service role only).
+
+### `ai_tailor_logs`
+Append-only log of AI tailoring calls. Used for rate limiting and usage display.
+
+---
+
+## Environment Variables Reference
+
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase anon/public key |
+| `GEMINI_API_KEY` | ✅ | Google Gemini API key for AI tailoring |
+
+---
+
+## License
+
+MIT
