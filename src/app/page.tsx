@@ -2,38 +2,18 @@
 // ResumeForge — Dashboard
 // src/app/page.tsx
 //
-// Server component. Lists the current user's resumes with a
-// "New" button and per-row links into the editor. If the user
-// isn't signed in, redirects to /login.
+// Server component. Fetches the resume list server-side and
+// passes it to ResumeList (client component) which handles
+// delete, confirmation modal, and local state updates.
 // =============================================================
 
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createResumeAction } from "./_actions/create-resume";
-import { Plus, FileText, LogOut } from "lucide-react";
+import { ResumeList, type ResumeRow } from "./_components/ResumeList";
+import { Plus, LogOut } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-
-interface ResumeRow {
-    id: string;
-    title: string;
-    updated_at: string;
-    created_at: string;
-}
-
-function formatRelative(iso: string): string {
-    const d = new Date(iso);
-    const diff = Date.now() - d.getTime();
-    const mins = Math.floor(diff / 60_000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 30) return `${days}d ago`;
-    return d.toLocaleDateString();
-}
 
 export default async function DashboardPage() {
     const supabase = await createClient();
@@ -89,33 +69,7 @@ export default async function DashboardPage() {
                     </form>
                 </div>
 
-                {list.length === 0 ? (
-                    <div className="border border-dashed border-zinc-800 rounded-xl p-12 text-center">
-                        <FileText className="w-8 h-8 text-zinc-700 mx-auto mb-3" />
-                        <p className="text-sm text-zinc-400 mb-1">No resumes yet</p>
-                        <p className="text-xs text-zinc-600">Click &quot;New resume&quot; to create your first one.</p>
-                    </div>
-                ) : (
-                    <ul className="space-y-2">
-                        {list.map((r) => (
-                            <li key={r.id}>
-                                <Link
-                                    href={`/editor/${r.id}`}
-                                    className="flex items-center justify-between p-4 rounded-xl border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/40 transition-all"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-zinc-200 truncate">
-                                            {r.title || "Untitled Resume"}
-                                        </p>
-                                        <p className="text-xs text-zinc-500 mt-0.5">
-                                            Updated {formatRelative(r.updated_at)}
-                                        </p>
-                                    </div>
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                <ResumeList initialResumes={list} />
             </main>
         </div>
     );
