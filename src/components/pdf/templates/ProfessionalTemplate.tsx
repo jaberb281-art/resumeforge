@@ -540,14 +540,14 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
 // ─────────────────────────────────────────────────────────────
 
 import type { ResumeTemplate } from "@/store/useResumeStore";
+import { CreativeTemplate } from "./CreativeTemplate";
 
 type TemplateComponent = (props: ProfessionalTemplateProps) => React.ReactElement;
 
 export const TEMPLATE_REGISTRY: Record<ResumeTemplate, TemplateComponent> = {
     professional: ProfessionalTemplate,
-    // creative:     CreativeTemplate,   // sidebar layout — add when built
+    creative: CreativeTemplate,
     // academic:     AcademicTemplate,   // serif, wider margins — add when built
-    creative: ProfessionalTemplate,      // fallback until implemented
     academic: ProfessionalTemplate,
 };
 
