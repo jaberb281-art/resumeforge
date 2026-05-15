@@ -10,6 +10,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createResumeAction } from "./_actions/create-resume";
+import { AiUsageBadge } from "./_components/AiUsageBadge";
 import { ResumeList, type ResumeRow } from "./_components/ResumeList";
 import { Plus, LogOut } from "lucide-react";
 
@@ -56,8 +57,19 @@ export default async function DashboardPage() {
 
             {/* Body */}
             <main className="max-w-3xl mx-auto px-6 py-12">
-                <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-xl font-semibold tracking-tight">Your resumes</h1>
+                {error && (
+                    <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                        Couldn&apos;t refresh your latest resumes. You can still create a new one.
+                    </div>
+                )}
+
+                <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-xl font-semibold tracking-tight">Your resumes</h1>
+                        <div className="mt-3">
+                            <AiUsageBadge />
+                        </div>
+                    </div>
                     <form action={createResumeAction}>
                         <button
                             type="submit"
