@@ -22,13 +22,43 @@ import {
 } from "@/store/useResumeStore";
 import { v4 as uuidv4 } from "uuid";
 
-// ─── Lazy load PDFViewer (client-only, heavy) ────────────────
-const PDFViewer = dynamic(
-    () => import("@react-pdf/renderer").then((m) => ({ default: m.PDFViewer })),
+// ─── Lazy-load BlobProvider (client-only, heavy) ─────────────
+// We use BlobProvider + <iframe> instead of PDFViewer because
+// PDFViewer renders an unsized <iframe> that ignores percentage
+// dimensions set on it, causing text overlap and incorrect scale.
+// BlobProvider gives us a blob URL we feed to a plain <iframe>
+// that we control entirely, fixing the preview layout.
+const BlobProvider = dynamic(
+    () => import("@react-pdf/renderer").then((m) => ({ default: m.BlobProvider })),
     { ssr: false, loading: () => <PDFSkeleton /> }
 );
 
+function PDFPreview({ document: doc }: { document: React.ReactElement<DocumentProps> }) {
+    return (
+        <BlobProvider document={doc}>
+            {({ url, loading, error }) => {
+                if (loading || !url) return <PDFSkeleton />;
+                if (error) {
+                    return (
+                        <div className="h-full flex items-center justify-center text-red-400 text-xs px-4 text-center">
+                            Preview failed to render. Try exporting directly.
+                        </div>
+                    );
+                }
+                return (
+                    <iframe
+                        src={url}
+                        title="Resume preview"
+                        style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                    />
+                );
+            }}
+        </BlobProvider>
+    );
+}
+
 import { getTemplate } from "@/components/pdf/templates/ProfessionalTemplate";
+import type { DocumentProps } from "@react-pdf/renderer";
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -596,10 +626,10 @@ export default function EditorPage() {
     // because it can't tell that the same template string always returns the
     // same component reference. In our case TEMPLATE_REGISTRY is a static
     // object so this is safe.
-    const documentElement = useMemo(() => {
+    const documentElement = useMemo((): React.ReactElement<DocumentProps> => {
         const Template = getTemplate(theme.template);
         // eslint-disable-next-line react-hooks/static-components
-        return <Template data={data} theme={theme} />;
+        return <Template data={data} theme={theme} /> as React.ReactElement<DocumentProps>;
     }, [data, theme]);
 
     // ── Loading / 404 gates ──
@@ -736,11 +766,9 @@ export default function EditorPage() {
                                 {theme.template}
                             </span>
                         </div>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
                             <Suspense fallback={<PDFSkeleton />}>
-                                <PDFViewer width="100%" height="100%" showToolbar={false}>
-                                    {documentElement}
-                                </PDFViewer>
+                                <PDFPreview document={documentElement} />
                             </Suspense>
                         </div>
                     </div>
