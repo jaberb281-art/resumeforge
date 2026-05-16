@@ -301,14 +301,20 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
                         )}
 
                         {contact.linkedin && (
-                            <Link src={contact.linkedin} style={styles.contactLink}>
-                                LinkedIn
+                            <Link
+                                src={contact.linkedin}
+                                style={styles.contactLink}
+                            >
+                                {contact.linkedin.replace(/^https?:\/\//, "")}
                             </Link>
                         )}
 
                         {contact.github && (
-                            <Link src={contact.github} style={styles.contactLink}>
-                                GitHub
+                            <Link
+                                src={contact.github}
+                                style={styles.contactLink}
+                            >
+                                {contact.github.replace(/^https?:\/\//, "")}
                             </Link>
                         )}
 

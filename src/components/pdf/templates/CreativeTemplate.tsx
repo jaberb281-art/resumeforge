@@ -1,226 +1,283 @@
+// =============================================================
+// ResumeForge — PDF Template: "Creative"
+// src/components/pdf/templates/CreativeTemplate.tsx
+//
+// Two-column sidebar layout.
+// Left (dark sidebar ~180pt): name, contact, skills, education, certs.
+// Right (main column): summary, experience, projects.
+// =============================================================
+
 import React from "react";
 import {
-    Document,
-    Link,
     Page,
-    StyleSheet,
     Text,
     View,
+    Document,
+    StyleSheet,
+    Link,
 } from "@react-pdf/renderer";
 import type { ResumeData, ThemeConfig } from "@/store/useResumeStore";
 
-interface CreativeTemplateProps {
-    data: ResumeData;
-    theme: ThemeConfig;
-}
+// Fonts registered by ProfessionalTemplate at module load — no re-registration needed.
 
-function safeArray<T>(value: T[] | undefined | null): T[] {
-    return Array.isArray(value) ? value : [];
-}
+// ─────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────
 
-function formatDate(dateStr?: string): string {
+function formatDate(dateStr?: string | null): string {
     if (!dateStr) return "Present";
-
     const [year, month] = dateStr.split("-");
-    const months = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-
-    const monthIndex = Number.parseInt(month ?? "", 10) - 1;
-
-    if (Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex < 12) {
-        return `${months[monthIndex]} ${year}`;
-    }
-
-    return year || "";
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return month ? `${months[parseInt(month) - 1]} ${year}` : year;
 }
+
+function safeUrl(url?: string | null): string {
+    return (url && url.trim()) ? url.trim() : "#";
+}
+
+// ─────────────────────────────────────────────────────────────
+// STYLE FACTORY
+// FIX: All gap usages replaced with marginRight/marginBottom.
+// FIX: All fractional lineHeights converted to absolute pt values.
+// FIX: wrap={false} removed from section wrappers.
+// ─────────────────────────────────────────────────────────────
 
 function makeStyles(theme: ThemeConfig) {
     const { colors, typography } = theme;
-    const base = typography.baseFontSize || 10;
+    const { sectionGap, entryGap } = theme.spacing;
+    const fs = typography.baseFontSize;
+
     const sidebarBg = colors.accent ?? "#1E3A5F";
+    const sidebarText = colors.primary;
+    const sidebarMute = colors.secondary;
+    const SIDEBAR_W = 180;
+    const PAGE_H = 792;
 
     return StyleSheet.create({
         page: {
-            flexDirection: "row",
-            backgroundColor: colors.background,
-            color: colors.text,
             fontFamily: typography.bodyFont,
-            fontSize: base,
+            fontSize: fs,
+            lineHeight: fs * typography.lineHeight, // absolute pt
+            backgroundColor: colors.background,
+            flexDirection: "row",
+            width: 612,
+            minHeight: PAGE_H,
         },
-
         sidebar: {
-            width: 190,
+            width: SIDEBAR_W,
+            minHeight: PAGE_H,
             backgroundColor: sidebarBg,
-            paddingTop: 34,
-            paddingBottom: 34,
-            paddingHorizontal: 18,
+            paddingHorizontal: 20,
+            paddingTop: 36,
+            paddingBottom: 36,
+            flexShrink: 0,
         },
-
         sidebarName: {
-            color: "#FFFFFF",
             fontFamily: typography.headingFont,
+            fontSize: fs + 10,
             fontWeight: 700,
-            fontSize: base + 10,
-            lineHeight: base + 15,
-            marginBottom: 10,
+            color: sidebarText,
+            lineHeight: (fs + 10) * 1.2, // absolute
+            marginBottom: 4,
         },
-
-        sidebarHeading: {
-            marginTop: 14,
-            marginBottom: 5,
-            color: "#FFFFFF",
+        sidebarSectionHeading: {
             fontFamily: typography.headingFont,
+            fontSize: fs - 0.5,
             fontWeight: 700,
-            fontSize: base - 0.5,
-            lineHeight: base + 4,
+            color: sidebarText,
             textTransform: "uppercase",
-            letterSpacing: 1.1,
+            letterSpacing: 1.4,
+            marginBottom: 6,
+            marginTop: sectionGap,
+            lineHeight: (fs - 0.5) * 1.3,
         },
-
-        sidebarRule: {
-            borderBottomWidth: 0.75,
-            borderBottomColor: "#D1D5DB",
+        sidebarDivider: {
+            borderBottomWidth: 0.5,
+            borderBottomColor: sidebarMute,
             borderBottomStyle: "solid",
-            marginBottom: 7,
-        },
-
-        sidebarText: {
-            color: "#E2E8F0",
-            fontSize: base - 1,
-            lineHeight: base + 4,
-            marginBottom: 4,
-        },
-
-        sidebarLink: {
-            color: "#FFFFFF",
-            fontSize: base - 1,
-            lineHeight: base + 4,
-            textDecoration: "none",
-            marginBottom: 4,
-        },
-
-        sidebarBlock: {
             marginBottom: 8,
+            opacity: 0.4,
         },
-
-        skillCategory: {
-            color: "#FFFFFF",
+        sidebarContactItem: {
+            fontSize: fs - 1,
+            color: sidebarMute,
+            marginBottom: 5,
+            lineHeight: (fs - 1) * 1.4, // absolute
+        },
+        sidebarLink: {
+            color: sidebarText,
+            textDecoration: "none",
+            fontSize: fs - 1,
+            marginBottom: 5,
+            lineHeight: (fs - 1) * 1.4, // absolute
+        },
+        sidebarSkillCategory: {
             fontFamily: typography.headingFont,
+            fontSize: fs - 1,
             fontWeight: 700,
-            fontSize: base - 1,
-            lineHeight: base + 4,
+            color: sidebarText,
+            marginBottom: 2,
+            marginTop: 7,
+        },
+        sidebarSkillItems: {
+            fontSize: fs - 1,
+            color: sidebarMute,
+            lineHeight: (fs - 1) * 1.5, // absolute
+        },
+        sidebarEduEntry: { marginBottom: entryGap - 2 },
+        sidebarEduDegree: {
+            fontSize: fs - 0.5,
+            fontWeight: 700,
+            color: sidebarText,
             marginBottom: 1,
-            marginTop: 4,
+            lineHeight: (fs - 0.5) * 1.3,
         },
-
-        skillItems: {
-            color: "#E2E8F0",
-            fontSize: base - 1,
-            lineHeight: base + 4,
-            marginBottom: 3,
+        sidebarEduInstitution: {
+            fontSize: fs - 1,
+            color: sidebarMute,
+            lineHeight: (fs - 1) * 1.4, // absolute
         },
-
+        sidebarEduDate: {
+            fontSize: fs - 1.5,
+            color: sidebarMute,
+            fontStyle: "italic",
+            marginTop: 1,
+        },
+        sidebarCertName: {
+            fontSize: fs - 1,
+            fontWeight: 700,
+            color: sidebarText,
+            marginBottom: 1,
+        },
+        sidebarCertMeta: {
+            fontSize: fs - 1.5,
+            color: sidebarMute,
+            lineHeight: (fs - 1.5) * 1.4, // absolute
+        },
         main: {
             flex: 1,
-            paddingTop: 34,
-            paddingBottom: 34,
-            paddingHorizontal: 26,
+            paddingHorizontal: 28,
+            paddingTop: 36,
+            paddingBottom: 36,
+            color: colors.text,
         },
-
-        section: {
-            marginBottom: 14,
-        },
-
-        mainHeading: {
-            color: sidebarBg,
+        section: { marginBottom: sectionGap },
+        sectionHeading: {
             fontFamily: typography.headingFont,
+            fontSize: fs + 2,
             fontWeight: 700,
-            fontSize: base + 2,
-            lineHeight: base + 6,
-            textTransform: "uppercase",
-            letterSpacing: 0.9,
-            marginBottom: 4,
+            color: colors.text,
+            marginBottom: 3,
+            lineHeight: (fs + 2) * 1.3,
         },
-
-        mainRule: {
-            borderBottomWidth: 1.5,
+        sectionUnderline: {
+            borderBottomWidth: 2,
             borderBottomColor: sidebarBg,
             borderBottomStyle: "solid",
             marginBottom: 8,
         },
-
         summary: {
-            fontSize: base,
-            lineHeight: base + 5,
+            fontSize: fs,
+            lineHeight: fs * typography.lineHeight,
             color: colors.text,
         },
-
-        entry: {
-            marginBottom: 10,
-        },
-
-        rowBetween: {
+        entry: { marginBottom: entryGap },
+        entryHeader: {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            marginBottom: 2,
+            marginBottom: 1,
         },
-
         entryTitle: {
-            flex: 1,
-            color: colors.text,
             fontFamily: typography.headingFont,
             fontWeight: 700,
-            fontSize: base + 0.5,
-            lineHeight: base + 5,
-            marginRight: 10,
+            fontSize: fs + 0.5,
+            color: colors.text,
+            flex: 1,
+            lineHeight: (fs + 0.5) * 1.3,
         },
-
         entryDate: {
+            fontSize: fs - 1,
             color: sidebarBg,
-            fontSize: base - 1,
-            lineHeight: base + 4,
             fontStyle: "italic",
         },
-
-        entryMeta: {
-            color: colors.secondary,
-            fontSize: base - 0.5,
-            lineHeight: base + 4,
+        entryCompany: {
+            fontSize: fs,
+            fontWeight: 600,
+            color: sidebarBg,
             marginBottom: 4,
         },
-
-        bulletRow: {
-            flexDirection: "row",
-            marginBottom: 2,
-        },
-
-        bulletMark: {
-            width: 9,
-            color: sidebarBg,
-            fontSize: base - 1,
-            lineHeight: base + 4,
-        },
-
+        bulletRow: { flexDirection: "row", marginBottom: 2 },
+        bulletDot: { width: 10, marginTop: 1, color: sidebarBg, fontSize: fs - 1 },
         bulletText: {
             flex: 1,
+            fontSize: fs - 0.5,
+            lineHeight: (fs - 0.5) * 1.4, // absolute
             color: colors.text,
-            fontSize: base - 0.5,
-            lineHeight: base + 4,
         },
-
-        techLine: {
+        // NO gap — marginRight + marginBottom on each tag
+        tagRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 3 },
+        tag: {
+            fontSize: fs - 1.5,
             color: sidebarBg,
-            fontSize: base - 1,
-            lineHeight: base + 4,
+            borderWidth: 0.5,
+            borderColor: sidebarBg,
+            borderRadius: 3,
+            paddingHorizontal: 5,
+            paddingVertical: 1.5,
+            marginRight: 4,
+            marginBottom: 2,
+        },
+        projectName: {
+            fontFamily: typography.headingFont,
+            fontWeight: 700,
+            fontSize: fs,
+            color: colors.text,
+            lineHeight: fs * 1.3,
+        },
+        projectLink: {
+            fontFamily: typography.headingFont,
+            fontWeight: 700,
+            fontSize: fs,
+            color: colors.text,
+            textDecoration: "none",
+            lineHeight: fs * 1.3,
+        },
+        projectSourceLink: {
+            fontSize: fs - 0.5,
+            color: sidebarBg,
             fontStyle: "italic",
-            marginTop: 3,
+            textDecoration: "none",
+        },
+        projectDescription: {
+            fontSize: fs - 0.5,
+            color: colors.text,
+            lineHeight: (fs - 0.5) * 1.4,
+            marginBottom: 2,
+        },
+        projectTech: {
+            fontSize: fs - 1,
+            color: sidebarBg,
+            fontStyle: "italic",
         },
     });
 }
 
+// ─────────────────────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────────────────────
+
+function Bullet({ text, styles }: { text: string; styles: ReturnType<typeof makeStyles> }) {
+    if (!text?.trim()) return null;
+    return (
+        <View style={styles.bulletRow}>
+            <Text style={styles.bulletDot}>▸</Text>
+            <Text style={styles.bulletText}>{text}</Text>
+        </View>
+    );
+}
+
+// REMOVED wrap={false} — causes whole sections to be pushed to new pages
 function MainSection({
     title,
     styles,
@@ -232,299 +289,211 @@ function MainSection({
 }) {
     return (
         <View style={styles.section}>
-            <Text style={styles.mainHeading}>{title}</Text>
-            <View style={styles.mainRule} />
+            <Text style={styles.sectionHeading}>{title}</Text>
+            <View style={styles.sectionUnderline} />
             {children}
         </View>
     );
 }
 
-function SidebarSection({
-    title,
-    styles,
-    children,
-}: {
-    title: string;
-    styles: ReturnType<typeof makeStyles>;
-    children: React.ReactNode;
-}) {
-    return (
-        <>
-            <Text style={styles.sidebarHeading}>{title}</Text>
-            <View style={styles.sidebarRule} />
-            {children}
-        </>
-    );
-}
+// ─────────────────────────────────────────────────────────────
+// MAIN TEMPLATE
+// ─────────────────────────────────────────────────────────────
 
-function Bullet({
-    text,
-    styles,
-}: {
-    text: string;
-    styles: ReturnType<typeof makeStyles>;
-}) {
-    const clean = typeof text === "string" ? text.trim() : "";
-    if (!clean) return null;
-
-    return (
-        <View style={styles.bulletRow}>
-            <Text style={styles.bulletMark}>-</Text>
-            <Text style={styles.bulletText}>{clean}</Text>
-        </View>
-    );
+interface CreativeTemplateProps {
+    data: ResumeData;
+    theme: ThemeConfig;
 }
 
 export function CreativeTemplate({ data, theme }: CreativeTemplateProps) {
     const styles = makeStyles(theme);
 
-    const contact = data.contact ?? {
-        name: "",
-        email: "",
-        phone: "",
-        location: "",
-        website: "",
-        linkedin: "",
-        github: "",
-    };
-
-    const summary = typeof data.summary === "string" ? data.summary : "";
-    const experience = safeArray(data.experience);
-    const projects = safeArray(data.projects);
-    const skills = safeArray(data.skills);
-    const education = safeArray(data.education);
-    const certifications = safeArray(data.certifications);
-    const languages = safeArray(data.languages);
-
-    const keywords = skills
-        .flatMap((group) => safeArray(group.items))
-        .filter(Boolean)
-        .join(", ");
+    // Defensive defaults — all arrays fall back to [] so .map() never throws
+    const contact = data?.contact ?? { name: "", email: "", phone: "", location: "", website: "", linkedin: "", github: "" };
+    const summary = data?.summary ?? "";
+    const experience = data?.experience ?? [];
+    const education = data?.education ?? [];
+    const projects = data?.projects ?? [];
+    const skills = data?.skills ?? [];
+    const certifications = data?.certifications ?? [];
 
     return (
         <Document
             title={contact.name || "Resume"}
-            author={contact.name || "ResumeForge"}
-            keywords={keywords}
+            author={contact.name || ""}
+            keywords={skills.flatMap((g) => g.items ?? []).join(", ")}
             creator="ResumeForge"
         >
             <Page size="LETTER" style={styles.page}>
+
+                {/* ═══ LEFT SIDEBAR ═══════════════════════════ */}
                 <View style={styles.sidebar}>
                     <Text style={styles.sidebarName}>{contact.name || "Your Name"}</Text>
 
-                    <SidebarSection title="Contact" styles={styles}>
-                        {contact.email && (
-                            <Link src={`mailto:${contact.email}`} style={styles.sidebarLink}>
-                                {contact.email}
-                            </Link>
-                        )}
+                    {/* Contact */}
+                    <Text style={styles.sidebarSectionHeading}>Contact</Text>
+                    <View style={styles.sidebarDivider} />
 
-                        {contact.phone && (
-                            <Text style={styles.sidebarText}>{contact.phone}</Text>
-                        )}
+                    {!!contact.email?.trim() && (
+                        <Link src={`mailto:${contact.email.trim()}`} style={styles.sidebarLink}>
+                            {contact.email.trim()}
+                        </Link>
+                    )}
+                    {!!contact.phone?.trim() && (
+                        <Text style={styles.sidebarContactItem}>{contact.phone.trim()}</Text>
+                    )}
+                    {!!contact.location?.trim() && (
+                        <Text style={styles.sidebarContactItem}>{contact.location.trim()}</Text>
+                    )}
+                    {!!contact.linkedin?.trim() && (
+                        <Link src={safeUrl(contact.linkedin)} style={styles.sidebarLink}>
+                            LinkedIn
+                        </Link>
+                    )}
+                    {!!contact.github?.trim() && (
+                        <Link src={safeUrl(contact.github)} style={styles.sidebarLink}>
+                            GitHub
+                        </Link>
+                    )}
+                    {!!contact.website?.trim() && (
+                        <Link src={safeUrl(contact.website)} style={styles.sidebarLink}>
+                            {contact.website.trim().replace(/^https?:\/\//, "")}
+                        </Link>
+                    )}
 
-                        {contact.location && (
-                            <Text style={styles.sidebarText}>{contact.location}</Text>
-                        )}
-
-                        {contact.linkedin && (
-                            <Link src={contact.linkedin} style={styles.sidebarLink}>
-                                LinkedIn
-                            </Link>
-                        )}
-
-                        {contact.github && (
-                            <Link src={contact.github} style={styles.sidebarLink}>
-                                GitHub
-                            </Link>
-                        )}
-
-                        {contact.website && (
-                            <Link src={contact.website} style={styles.sidebarLink}>
-                                {contact.website.replace(/^https?:\/\//, "")}
-                            </Link>
-                        )}
-                    </SidebarSection>
-
+                    {/* Skills */}
                     {skills.length > 0 && (
-                        <SidebarSection title="Skills" styles={styles}>
-                            {skills.map((group, index) => (
-                                <View
-                                    key={group.category || `skill-${index}`}
-                                    style={styles.sidebarBlock}
-                                >
-                                    <Text style={styles.skillCategory}>
-                                        {group.category || "Skills"}
-                                    </Text>
-                                    <Text style={styles.skillItems}>
-                                        {safeArray(group.items).join(", ")}
+                        <View>
+                            <Text style={styles.sidebarSectionHeading}>Skills</Text>
+                            <View style={styles.sidebarDivider} />
+                            {skills.map((group) => (
+                                <View key={group.category}>
+                                    <Text style={styles.sidebarSkillCategory}>{group.category}</Text>
+                                    <Text style={styles.sidebarSkillItems}>
+                                        {(group.items ?? []).join(" · ")}
                                     </Text>
                                 </View>
                             ))}
-                        </SidebarSection>
+                        </View>
                     )}
 
+                    {/* Education */}
                     {education.length > 0 && (
-                        <SidebarSection title="Education" styles={styles}>
-                            {education.map((item, index) => (
-                                <View
-                                    key={item.id || `education-${index}`}
-                                    style={styles.sidebarBlock}
-                                >
-                                    <Text style={styles.skillCategory}>
-                                        {item.degree || "Degree"}
-                                        {item.field ? `, ${item.field}` : ""}
+                        <View>
+                            <Text style={styles.sidebarSectionHeading}>Education</Text>
+                            <View style={styles.sidebarDivider} />
+                            {education.map((edu) => (
+                                <View key={edu.id} style={styles.sidebarEduEntry}>
+                                    <Text style={styles.sidebarEduDegree}>
+                                        {edu.degree || ""}{edu.field ? `, ${edu.field}` : ""}
                                     </Text>
-                                    {item.institution && (
-                                        <Text style={styles.sidebarText}>{item.institution}</Text>
+                                    <Text style={styles.sidebarEduInstitution}>{edu.institution || ""}</Text>
+                                    {!!edu.location?.trim() && (
+                                        <Text style={styles.sidebarEduInstitution}>{edu.location}</Text>
                                     )}
-                                    {item.location && (
-                                        <Text style={styles.sidebarText}>{item.location}</Text>
-                                    )}
-                                    <Text style={styles.sidebarText}>
-                                        {formatDate(item.graduationDate)}
+                                    <Text style={styles.sidebarEduDate}>
+                                        {formatDate(edu.graduationDate)}{edu.gpa ? `  ·  GPA ${edu.gpa}` : ""}
                                     </Text>
+                                    {!!edu.honors?.trim() && (
+                                        <Text style={styles.sidebarEduDate}>{edu.honors}</Text>
+                                    )}
                                 </View>
                             ))}
-                        </SidebarSection>
+                        </View>
                     )}
 
+                    {/* Certifications */}
                     {certifications.length > 0 && (
-                        <SidebarSection title="Certifications" styles={styles}>
-                            {certifications.map((item, index) => (
-                                <View
-                                    key={item.id || `cert-${index}`}
-                                    style={styles.sidebarBlock}
-                                >
-                                    <Text style={styles.skillCategory}>
-                                        {item.name || "Certification"}
-                                    </Text>
-                                    {item.issuer && (
-                                        <Text style={styles.sidebarText}>{item.issuer}</Text>
-                                    )}
-                                    <Text style={styles.sidebarText}>
-                                        {formatDate(item.date)}
-                                    </Text>
+                        <View>
+                            <Text style={styles.sidebarSectionHeading}>Certifications</Text>
+                            <View style={styles.sidebarDivider} />
+                            {certifications.map((cert) => (
+                                <View key={cert.id} style={styles.sidebarEduEntry}>
+                                    <Text style={styles.sidebarCertName}>{cert.name || ""}</Text>
+                                    <Text style={styles.sidebarCertMeta}>{cert.issuer || ""}</Text>
+                                    <Text style={styles.sidebarCertMeta}>{formatDate(cert.date)}</Text>
                                 </View>
                             ))}
-                        </SidebarSection>
-                    )}
-
-                    {languages.length > 0 && (
-                        <SidebarSection title="Languages" styles={styles}>
-                            {languages.map((item, index) => (
-                                <Text
-                                    key={`${item.language || "language"}-${index}`}
-                                    style={styles.sidebarText}
-                                >
-                                    {item.language || "Language"}
-                                    {item.proficiency ? ` (${item.proficiency})` : ""}
-                                </Text>
-                            ))}
-                        </SidebarSection>
+                        </View>
                     )}
                 </View>
 
+                {/* ═══ RIGHT MAIN COLUMN ══════════════════════ */}
                 <View style={styles.main}>
-                    {summary && (
+
+                    {/* Summary */}
+                    {!!summary?.trim() && (
                         <MainSection title="Profile" styles={styles}>
                             <Text style={styles.summary}>{summary}</Text>
                         </MainSection>
                     )}
 
+                    {/* Experience */}
                     {experience.length > 0 && (
                         <MainSection title="Experience" styles={styles}>
-                            {experience.map((item, index) => {
-                                const bullets = safeArray(item.bullets);
-                                const technologies = safeArray(item.technologies);
-
-                                return (
-                                    <View key={item.id || `experience-${index}`} style={styles.entry}>
-                                        <View style={styles.rowBetween}>
-                                            <Text style={styles.entryTitle}>
-                                                {item.role || "Role"}
-                                            </Text>
-                                            <Text style={styles.entryDate}>
-                                                {formatDate(item.startDate)} -{" "}
-                                                {item.current ? "Present" : formatDate(item.endDate)}
-                                            </Text>
-                                        </View>
-
-                                        <Text style={styles.entryMeta}>
-                                            {item.company || "Organization"}
-                                            {item.location ? `, ${item.location}` : ""}
+                            {experience.map((exp) => (
+                                <View key={exp.id} style={styles.entry}>
+                                    <View style={styles.entryHeader}>
+                                        <Text style={styles.entryTitle}>{exp.role || ""}</Text>
+                                        <Text style={styles.entryDate}>
+                                            {formatDate(exp.startDate)} – {exp.current ? "Present" : formatDate(exp.endDate)}
                                         </Text>
-
-                                        {bullets.map((bullet, bulletIndex) => (
-                                            <Bullet
-                                                key={bulletIndex}
-                                                text={bullet}
-                                                styles={styles}
-                                            />
-                                        ))}
-
-                                        {technologies.length > 0 && (
-                                            <Text style={styles.techLine}>
-                                                {technologies.join(" | ")}
-                                            </Text>
-                                        )}
                                     </View>
-                                );
-                            })}
+                                    <Text style={styles.entryCompany}>
+                                        {exp.company || ""}{exp.location?.trim() ? `  ·  ${exp.location.trim()}` : ""}
+                                    </Text>
+                                    {(exp.bullets ?? []).map((b, i) => (
+                                        <Bullet key={i} text={b} styles={styles} />
+                                    ))}
+                                    {(exp.technologies ?? []).length > 0 && (
+                                        <View style={styles.tagRow}>
+                                            {(exp.technologies ?? []).map((t) => (
+                                                <Text key={t} style={styles.tag}>{t}</Text>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            ))}
                         </MainSection>
                     )}
 
+                    {/* Projects */}
                     {projects.length > 0 && (
                         <MainSection title="Projects" styles={styles}>
-                            {projects.map((project, index) => {
-                                const highlights = safeArray(project.highlights);
-                                const technologies = safeArray(project.technologies);
-
-                                return (
-                                    <View key={project.id || `project-${index}`} style={styles.entry}>
-                                        <View style={styles.rowBetween}>
-                                            <Text style={styles.entryTitle}>
-                                                {project.url ? (
-                                                    <Link src={project.url}>
-                                                        {project.name || "Project"}
-                                                    </Link>
-                                                ) : (
-                                                    project.name || "Project"
-                                                )}
-                                            </Text>
-
-                                            {project.repoUrl && (
-                                                <Text style={styles.entryDate}>
-                                                    <Link src={project.repoUrl}>Source</Link>
-                                                </Text>
-                                            )}
-                                        </View>
-
-                                        {project.description && (
-                                            <Text style={styles.entryMeta}>
-                                                {project.description}
-                                            </Text>
-                                        )}
-
-                                        {highlights.map((highlight, highlightIndex) => (
-                                            <Bullet
-                                                key={highlightIndex}
-                                                text={highlight}
-                                                styles={styles}
-                                            />
-                                        ))}
-
-                                        {technologies.length > 0 && (
-                                            <Text style={styles.techLine}>
-                                                {technologies.join(" | ")}
-                                            </Text>
+                            {projects.map((proj) => (
+                                <View key={proj.id} style={styles.entry}>
+                                    <View style={styles.entryHeader}>
+                                        {/*
+                                         * FIX: Link must NOT be nested inside <Text>.
+                                         * Use Link standalone or fall back to Text.
+                                         */}
+                                        {proj.url?.trim()
+                                            ? <Link src={safeUrl(proj.url)} style={styles.projectLink}>{proj.name || ""}</Link>
+                                            : <Text style={styles.projectName}>{proj.name || ""}</Text>
+                                        }
+                                        {!!proj.repoUrl?.trim() && (
+                                            <Link src={safeUrl(proj.repoUrl)} style={styles.projectSourceLink}>
+                                                Source
+                                            </Link>
                                         )}
                                     </View>
-                                );
-                            })}
+                                    {!!proj.description?.trim() && (
+                                        <Text style={styles.projectDescription}>{proj.description}</Text>
+                                    )}
+                                    {(proj.highlights ?? []).map((h, i) => (
+                                        <Bullet key={i} text={h} styles={styles} />
+                                    ))}
+                                    {(proj.technologies ?? []).length > 0 && (
+                                        <Text style={styles.projectTech}>
+                                            {(proj.technologies ?? []).join(" · ")}
+                                        </Text>
+                                    )}
+                                </View>
+                            ))}
                         </MainSection>
                     )}
                 </View>
+
             </Page>
         </Document>
     );

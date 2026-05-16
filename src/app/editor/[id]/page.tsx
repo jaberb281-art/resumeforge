@@ -14,52 +14,21 @@ import {
     User, Briefcase, GraduationCap, Code2, Wrench, Award,
     Wand2, Download, Save, Eye, Columns2,
     ChevronRight, Plus, Trash2, GripVertical, CheckCircle2,
-    Loader2, Palette, X, Copy
+    Loader2, Palette, X
 } from "lucide-react";
 import {
     useResumeStore, THEME_PRESETS, EMPTY_RESUME_DATA,
     type ResumeTemplate, type AiSuggestion, type ResumeData,
 } from "@/store/useResumeStore";
-import { AiUsageBadge, notifyAiUsageChanged } from "@/app/_components/AiUsageBadge";
 import { v4 as uuidv4 } from "uuid";
 
-// ─── Lazy-load BlobProvider (client-only, heavy) ─────────────
-// We use BlobProvider + <iframe> instead of PDFViewer because
-// PDFViewer renders an unsized <iframe> that ignores percentage
-// dimensions set on it, causing text overlap and incorrect scale.
-// BlobProvider gives us a blob URL we feed to a plain <iframe>
-// that we control entirely, fixing the preview layout.
-const BlobProvider = dynamic(
-    () => import("@react-pdf/renderer").then((m) => ({ default: m.BlobProvider })),
+// ─── Lazy load PDFViewer (client-only, heavy) ────────────────
+const PDFViewer = dynamic(
+    () => import("@react-pdf/renderer").then((m) => ({ default: m.PDFViewer })),
     { ssr: false, loading: () => <PDFSkeleton /> }
 );
 
-function PDFPreview({ document: doc }: { document: React.ReactElement<DocumentProps> }) {
-    return (
-        <BlobProvider document={doc}>
-            {({ url, loading, error }) => {
-                if (loading || !url) return <PDFSkeleton />;
-                if (error) {
-                    return (
-                        <div className="h-full flex items-center justify-center text-red-400 text-xs px-4 text-center">
-                            Preview failed to render. Try exporting directly.
-                        </div>
-                    );
-                }
-                return (
-                    <iframe
-                        src={url}
-                        title="Resume preview"
-                        style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                    />
-                );
-            }}
-        </BlobProvider>
-    );
-}
-
 import { getTemplate } from "@/components/pdf/templates/ProfessionalTemplate";
-import type { DocumentProps } from "@react-pdf/renderer";
 
 // ─────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -94,76 +63,6 @@ function PDFSkeleton() {
             </div>
         </div>
     );
-}
-
-interface PreviewErrorBoundaryProps {
-    children: React.ReactNode;
-    template: ResumeTemplate;
-    onRetry: () => void;
-}
-
-interface PreviewErrorBoundaryState {
-    hasError: boolean;
-    errorMessage: string | null;
-}
-
-class PreviewErrorBoundary extends React.Component<PreviewErrorBoundaryProps, PreviewErrorBoundaryState> {
-    constructor(props: PreviewErrorBoundaryProps) {
-        super(props);
-        this.state = { hasError: false, errorMessage: null };
-    }
-
-    static getDerivedStateFromError(error: unknown): PreviewErrorBoundaryState {
-        return {
-            hasError: true,
-            errorMessage: error instanceof Error ? error.message : "Unknown preview error",
-        };
-    }
-
-    componentDidCatch(error: unknown, info: React.ErrorInfo) {
-        console.error("[editor preview] failed to render", error, info);
-    }
-
-    private handleRetry = () => {
-        this.setState({ hasError: false, errorMessage: null });
-        this.props.onRetry();
-    };
-
-    render() {
-        if (this.state.hasError) {
-            return (
-                <div className="h-full flex items-center justify-center p-6">
-                    <div className="max-w-sm rounded-xl border border-zinc-800 bg-zinc-900/60 p-5">
-                        <h3 className="mb-1 text-sm font-semibold text-zinc-100">
-                            Resume preview failed to render
-                        </h3>
-                        <p className="text-xs leading-relaxed text-zinc-400">
-                            The {this.props.template} template hit an error in the preview renderer. Your edits are
-                            still safe, and the form remains usable.
-                        </p>
-                        <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-                            Retry below. If this template keeps failing, switch to another template from the Theme
-                            panel and continue editing.
-                        </p>
-                        {this.state.errorMessage && (
-                            <p className="mt-3 text-[11px] text-red-400">
-                                {this.state.errorMessage}
-                            </p>
-                        )}
-                        <button
-                            type="button"
-                            onClick={this.handleRetry}
-                            className="mt-4 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs text-zinc-200 transition-colors hover:bg-zinc-700"
-                        >
-                            Retry Preview
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        return this.props.children;
-    }
 }
 
 function StatusBar({ isDirty, isSaving, lastSavedAt, onSave }: {
@@ -226,7 +125,7 @@ function ContactPanel() {
     );
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3">
                 <div><FieldLabel>Full Name</FieldLabel>{field("name")}</div>
                 <div><FieldLabel>Email</FieldLabel>{field("email")}</div>
                 <div><FieldLabel>Phone</FieldLabel>{field("phone")}</div>
@@ -293,7 +192,7 @@ function ExperiencePanel() {
 
                     {open === exp.id && (
                         <div className="px-4 pb-4 space-y-3 border-t border-zinc-700/50 pt-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <FieldLabel>Job Title</FieldLabel>
                                     <input value={exp.role} onChange={(e) => updateExperience(exp.id, { role: e.target.value })}
@@ -410,6 +309,185 @@ function SkillsPanel() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// EDUCATION PANEL
+// ─────────────────────────────────────────────────────────────
+
+function EducationPanel() {
+    const { data, addEducation, updateEducation, removeEducation } = useResumeStore();
+    const [open, setOpen] = useState<string | null>(null);
+
+    const newEntry = () => {
+        const id = uuidv4();
+        addEducation({ id, degree: "", field: "", institution: "", location: "", graduationDate: "", gpa: "", honors: "" });
+        setOpen(id);
+    };
+
+    return (
+        <div className="space-y-3">
+            {data.education.map((edu) => (
+                <div key={edu.id} className="border border-zinc-700/50 rounded-xl overflow-hidden">
+                    <button onClick={() => setOpen(open === edu.id ? null : edu.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors">
+                        <GripVertical className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-zinc-200 truncate">
+                                {edu.degree || "New Degree"}{edu.field ? `, ${edu.field}` : ""}
+                            </p>
+                            <p className="text-xs text-zinc-500 truncate">
+                                {edu.institution || "Institution"}{edu.graduationDate ? ` · ${edu.graduationDate}` : ""}
+                            </p>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-zinc-500 transition-transform ${open === edu.id ? "rotate-90" : ""}`} />
+                    </button>
+                    {open === edu.id && (
+                        <div className="px-4 pb-4 space-y-3 border-t border-zinc-700/50 pt-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div><FieldLabel>Degree</FieldLabel>
+                                    <input value={edu.degree} onChange={(e) => updateEducation(edu.id, { degree: e.target.value })} placeholder="Bachelor of Science" className={inputClass} /></div>
+                                <div><FieldLabel>Field of Study</FieldLabel>
+                                    <input value={edu.field ?? ""} onChange={(e) => updateEducation(edu.id, { field: e.target.value })} placeholder="Computer Science" className={inputClass} /></div>
+                                <div><FieldLabel>Institution</FieldLabel>
+                                    <input value={edu.institution} onChange={(e) => updateEducation(edu.id, { institution: e.target.value })} placeholder="MIT" className={inputClass} /></div>
+                                <div><FieldLabel>Location</FieldLabel>
+                                    <input value={edu.location ?? ""} onChange={(e) => updateEducation(edu.id, { location: e.target.value })} placeholder="Cambridge, MA" className={inputClass} /></div>
+                                <div><FieldLabel>Graduation (YYYY-MM)</FieldLabel>
+                                    <input value={edu.graduationDate} onChange={(e) => updateEducation(edu.id, { graduationDate: e.target.value })} placeholder="2022-05" className={inputClass} /></div>
+                                <div><FieldLabel>GPA</FieldLabel>
+                                    <input value={edu.gpa ?? ""} onChange={(e) => updateEducation(edu.id, { gpa: e.target.value })} placeholder="3.9 / 4.0" className={inputClass} /></div>
+                                <div className="col-span-2"><FieldLabel>Honors / Awards</FieldLabel>
+                                    <input value={edu.honors ?? ""} onChange={(e) => updateEducation(edu.id, { honors: e.target.value })} placeholder="Summa Cum Laude" className={inputClass} /></div>
+                            </div>
+                            <button onClick={() => removeEducation(edu.id)} className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors">
+                                <Trash2 className="w-3 h-3" /> Remove education
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ))}
+            <button onClick={newEntry} className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-zinc-700 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-all">
+                <Plus className="w-4 h-4" /> Add Education
+            </button>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// PROJECTS PANEL
+// ─────────────────────────────────────────────────────────────
+
+function ProjectsPanel() {
+    const { data, addProject, updateProject, removeProject } = useResumeStore();
+    const [open, setOpen] = useState<string | null>(null);
+
+    const newEntry = () => {
+        const id = uuidv4();
+        addProject({ id, name: "", description: "", url: "", repoUrl: "", technologies: [], highlights: [""] });
+        setOpen(id);
+    };
+
+    return (
+        <div className="space-y-3">
+            {data.projects.map((proj) => (
+                <div key={proj.id} className="border border-zinc-700/50 rounded-xl overflow-hidden">
+                    <button onClick={() => setOpen(open === proj.id ? null : proj.id)}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors">
+                        <GripVertical className="w-4 h-4 text-zinc-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-zinc-200 truncate">{proj.name || "New Project"}</p>
+                            <p className="text-xs text-zinc-500 truncate">{proj.technologies.slice(0, 3).join(", ") || "No technologies yet"}</p>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-zinc-500 transition-transform ${open === proj.id ? "rotate-90" : ""}`} />
+                    </button>
+                    {open === proj.id && (
+                        <div className="px-4 pb-4 space-y-3 border-t border-zinc-700/50 pt-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="col-span-2"><FieldLabel>Project Name</FieldLabel>
+                                    <input value={proj.name} onChange={(e) => updateProject(proj.id, { name: e.target.value })} placeholder="ResumeForge" className={inputClass} /></div>
+                                <div className="col-span-2"><FieldLabel>Description</FieldLabel>
+                                    <textarea rows={2} value={proj.description} onChange={(e) => updateProject(proj.id, { description: e.target.value })} placeholder="AI-powered resume builder" className={textareaClass} /></div>
+                                <div><FieldLabel>Live URL</FieldLabel>
+                                    <input value={proj.url ?? ""} onChange={(e) => updateProject(proj.id, { url: e.target.value })} placeholder="https://myproject.com" className={inputClass} /></div>
+                                <div><FieldLabel>Repo URL</FieldLabel>
+                                    <input value={proj.repoUrl ?? ""} onChange={(e) => updateProject(proj.id, { repoUrl: e.target.value })} placeholder="https://github.com/..." className={inputClass} /></div>
+                                <div className="col-span-2"><FieldLabel>Technologies (comma-separated)</FieldLabel>
+                                    <input value={proj.technologies.join(", ")} onChange={(e) => updateProject(proj.id, { technologies: e.target.value.split(",").map(t => t.trim()).filter(Boolean) })} placeholder="Next.js, Supabase, Tailwind" className={inputClass} /></div>
+                            </div>
+                            <div>
+                                <FieldLabel>Highlights</FieldLabel>
+                                <div className="space-y-2">
+                                    {proj.highlights.map((h, i) => (
+                                        <div key={i} className="flex gap-2">
+                                            <textarea rows={2} value={h} onChange={(e) => { const highlights = [...proj.highlights]; highlights[i] = e.target.value; updateProject(proj.id, { highlights }); }} placeholder="Built real-time PDF generation" className={`${textareaClass} flex-1`} />
+                                            <button onClick={() => updateProject(proj.id, { highlights: proj.highlights.filter((_, j) => j !== i) })} className="text-zinc-600 hover:text-red-400 transition-colors self-start pt-2"><Trash2 className="w-3.5 h-3.5" /></button>
+                                        </div>
+                                    ))}
+                                    <button onClick={() => updateProject(proj.id, { highlights: [...proj.highlights, ""] })} className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                                        <Plus className="w-3 h-3" /> Add highlight
+                                    </button>
+                                </div>
+                            </div>
+                            <button onClick={() => removeProject(proj.id)} className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors">
+                                <Trash2 className="w-3 h-3" /> Remove project
+                            </button>
+                        </div>
+                    )}
+                </div>
+            ))}
+            <button onClick={newEntry} className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-zinc-700 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-all">
+                <Plus className="w-4 h-4" /> Add Project
+            </button>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CERTIFICATIONS PANEL
+// ─────────────────────────────────────────────────────────────
+
+function CertificationsPanel() {
+    const { data, addCertification, removeCertification } = useResumeStore();
+
+    // Note: no updateCertification action exists in the store.
+    // We use setState directly for field-level updates.
+    const updateCert = (id: string, patch: Record<string, string>) => {
+        useResumeStore.setState((s) => {
+            const idx = s.data.certifications.findIndex((c) => c.id === id);
+            if (idx >= 0) Object.assign(s.data.certifications[idx], patch);
+            s.isDirty = true;
+        });
+    };
+
+    const newEntry = () => {
+        addCertification({ id: uuidv4(), name: "", issuer: "", date: "", credentialUrl: "" });
+    };
+
+    return (
+        <div className="space-y-3">
+            {data.certifications.map((cert) => (
+                <div key={cert.id} className="border border-zinc-700/50 rounded-xl p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2"><FieldLabel>Certification Name</FieldLabel>
+                            <input value={cert.name} onChange={(e) => updateCert(cert.id, { name: e.target.value })} placeholder="AWS Solutions Architect" className={inputClass} /></div>
+                        <div><FieldLabel>Issuer</FieldLabel>
+                            <input value={cert.issuer} onChange={(e) => updateCert(cert.id, { issuer: e.target.value })} placeholder="Amazon Web Services" className={inputClass} /></div>
+                        <div><FieldLabel>Date (YYYY-MM)</FieldLabel>
+                            <input value={cert.date} onChange={(e) => updateCert(cert.id, { date: e.target.value })} placeholder="2023-06" className={inputClass} /></div>
+                        <div className="col-span-2"><FieldLabel>Credential URL</FieldLabel>
+                            <input value={cert.credentialUrl ?? ""} onChange={(e) => updateCert(cert.id, { credentialUrl: e.target.value })} placeholder="https://credential.net/..." className={inputClass} /></div>
+                    </div>
+                    <button onClick={() => removeCertification(cert.id)} className="flex items-center gap-1.5 text-xs text-red-400/70 hover:text-red-400 transition-colors">
+                        <Trash2 className="w-3 h-3" /> Remove certification
+                    </button>
+                </div>
+            ))}
+            <button onClick={newEntry} className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-zinc-700 rounded-xl text-sm text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-all">
+                <Plus className="w-4 h-4" /> Add Certification
+            </button>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
 // THEME PANEL
 // ─────────────────────────────────────────────────────────────
 
@@ -464,20 +542,10 @@ function ThemePanel({ onClose }: { onClose: () => void }) {
 
 function AIPanel({ onClose }: { onClose: () => void }) {
     const { data, jobDescription, matchAnalysis, aiLoading, setJobDescription, setMatchAnalysis, applyAiSuggestion, setAiLoading } = useResumeStore();
-    const [tailorError, setTailorError] = useState<string | null>(null);
-    const [coverJobTitle, setCoverJobTitle] = useState("");
-    const [coverCompanyName, setCoverCompanyName] = useState("");
-    const [coverJobDescription, setCoverJobDescription] = useState("");
-    const [coverTone, setCoverTone] = useState<"professional" | "confident" | "warm">("professional");
-    const [coverLetter, setCoverLetter] = useState("");
-    const [coverLoading, setCoverLoading] = useState(false);
-    const [coverError, setCoverError] = useState<string | null>(null);
-    const [copyState, setCopyState] = useState<"idle" | "done" | "error">("idle");
 
     const runAI = async () => {
         if (!jobDescription.trim()) return;
         setAiLoading(true);
-        setTailorError(null);
         try {
             const res = await fetch("/api/cv/tailor", {
                 method: "POST",
@@ -488,77 +556,19 @@ function AIPanel({ onClose }: { onClose: () => void }) {
             if (!res.ok) throw new Error(json.error ?? "AI request failed");
             setMatchAnalysis(json.matchAnalysis);
             applyAiSuggestion(json.resumeData as AiSuggestion);
-            notifyAiUsageChanged();
         } catch (e) {
-            const message = e instanceof Error ? e.message : "Unable to tailor resume right now.";
-            console.error(message);
-            setTailorError(message);
+            console.error(e instanceof Error ? e.message : e);
         } finally {
             setAiLoading(false);
-        }
-    };
-
-    const generateCoverLetter = async () => {
-        const trimmedJobTitle = coverJobTitle.trim();
-        const trimmedCompanyName = coverCompanyName.trim();
-
-        if (!trimmedJobTitle || !trimmedCompanyName) {
-            setCoverError("Please enter both target job title and company name.");
-            return;
-        }
-
-        setCoverLoading(true);
-        setCoverError(null);
-        setCopyState("idle");
-
-        try {
-            const res = await fetch("/api/cv/cover-letter", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    data,
-                    jobTitle: trimmedJobTitle,
-                    companyName: trimmedCompanyName,
-                    jobDescription: coverJobDescription.trim(),
-                    tone: coverTone,
-                }),
-            });
-
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.error ?? "Cover letter request failed");
-            if (typeof json.coverLetter !== "string" || !json.coverLetter.trim()) {
-                throw new Error("Cover letter generation returned no content.");
-            }
-
-            setCoverLetter(json.coverLetter.trim());
-        } catch (e) {
-            const message = e instanceof Error ? e.message : "Unable to generate cover letter.";
-            setCoverError(message);
-        } finally {
-            setCoverLoading(false);
-        }
-    };
-
-    const copyCoverLetter = async () => {
-        if (!coverLetter.trim()) return;
-
-        try {
-            await navigator.clipboard.writeText(coverLetter);
-            setCopyState("done");
-        } catch {
-            setCopyState("error");
         }
     };
 
     return (
         <div className="absolute top-0 right-0 h-full w-80 bg-zinc-900 border-l border-zinc-800 z-20 flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-zinc-800">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <Wand2 className="w-4 h-4 text-indigo-400" />
-                        <span className="text-sm font-medium text-zinc-200">AI Tailoring</span>
-                    </div>
-                    <AiUsageBadge className="bg-zinc-950/40" />
+                <div className="flex items-center gap-2">
+                    <Wand2 className="w-4 h-4 text-indigo-400" />
+                    <span className="text-sm font-medium text-zinc-200">AI Tailoring</span>
                 </div>
                 <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300 transition-colors">
                     <X className="w-4 h-4" />
@@ -578,10 +588,6 @@ function AIPanel({ onClose }: { onClose: () => void }) {
                     {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                     {aiLoading ? "Analysing…" : "Tailor My Resume"}
                 </button>
-
-                {tailorError && (
-                    <p className="text-xs text-red-400">{tailorError}</p>
-                )}
 
                 {matchAnalysis && (
                     <div className="space-y-3">
@@ -625,108 +631,6 @@ function AIPanel({ onClose }: { onClose: () => void }) {
                         )}
                     </div>
                 )}
-
-                <div className="border-t border-zinc-800 pt-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                        <Wand2 className="w-4 h-4 text-indigo-400" />
-                        <p className="text-sm font-medium text-zinc-200">Cover Letter Generator</p>
-                    </div>
-
-                    <div>
-                        <FieldLabel>Target Job Title</FieldLabel>
-                        <input
-                            value={coverJobTitle}
-                            onChange={(e) => setCoverJobTitle(e.target.value)}
-                            placeholder="Senior Frontend Engineer"
-                            className={inputClass}
-                        />
-                    </div>
-
-                    <div>
-                        <FieldLabel>Company Name</FieldLabel>
-                        <input
-                            value={coverCompanyName}
-                            onChange={(e) => setCoverCompanyName(e.target.value)}
-                            placeholder="Acme Inc."
-                            className={inputClass}
-                        />
-                    </div>
-
-                    <div>
-                        <FieldLabel>Tone</FieldLabel>
-                        <div className="grid grid-cols-3 gap-1.5">
-                            {([
-                                { id: "professional", label: "Professional" },
-                                { id: "confident", label: "Confident" },
-                                { id: "warm", label: "Warm" },
-                            ] as const).map((tone) => (
-                                <button
-                                    key={tone.id}
-                                    type="button"
-                                    onClick={() => setCoverTone(tone.id)}
-                                    className={`rounded-md border px-2 py-1.5 text-[11px] transition-colors ${coverTone === tone.id
-                                        ? "border-indigo-500 bg-indigo-500/15 text-indigo-300"
-                                        : "border-zinc-700 text-zinc-400 hover:text-zinc-300"
-                                        }`}
-                                >
-                                    {tone.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <FieldLabel>Job Description (Optional)</FieldLabel>
-                        <textarea
-                            rows={6}
-                            value={coverJobDescription}
-                            onChange={(e) => setCoverJobDescription(e.target.value)}
-                            placeholder="Paste the role description for better alignment."
-                            className={textareaClass}
-                        />
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={generateCoverLetter}
-                        disabled={coverLoading || !coverJobTitle.trim() || !coverCompanyName.trim()}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded-xl text-sm text-white transition-all"
-                    >
-                        {coverLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                        {coverLoading ? "Generating..." : "Generate Cover Letter"}
-                    </button>
-
-                    {coverError && (
-                        <p className="text-xs text-red-400">{coverError}</p>
-                    )}
-
-                    {coverLetter && (
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-                                    Generated Letter
-                                </p>
-                                <button
-                                    type="button"
-                                    onClick={copyCoverLetter}
-                                    className="inline-flex items-center gap-1 rounded-md border border-zinc-700 px-2 py-1 text-[11px] text-zinc-300 hover:bg-zinc-800 transition-colors"
-                                >
-                                    <Copy className="w-3 h-3" />
-                                    {copyState === "done" ? "Copied" : "Copy"}
-                                </button>
-                            </div>
-                            <textarea
-                                rows={14}
-                                value={coverLetter}
-                                readOnly
-                                className={textareaClass}
-                            />
-                            {copyState === "error" && (
-                                <p className="text-[11px] text-red-400">Could not copy automatically. Please copy manually.</p>
-                            )}
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );
@@ -751,7 +655,6 @@ export default function EditorPage() {
     const [showTheme, setShowTheme] = useState(false);
     const [showAI, setShowAI] = useState(false);
     const [loadState, setLoadState] = useState<"loading" | "ready" | "notfound">("loading");
-    const [previewRetryKey, setPreviewRetryKey] = useState(0);
 
     // ── Save: declared first so the auto-save effect can reference it ──
     const handleSave = useCallback(async () => {
@@ -872,15 +775,11 @@ export default function EditorPage() {
     // because it can't tell that the same template string always returns the
     // same component reference. In our case TEMPLATE_REGISTRY is a static
     // object so this is safe.
-    const documentElement = useMemo((): React.ReactElement<DocumentProps> => {
+    const documentElement = useMemo(() => {
         const Template = getTemplate(theme.template);
         // eslint-disable-next-line react-hooks/static-components
-        return <Template data={data} theme={theme} /> as React.ReactElement<DocumentProps>;
+        return <Template data={data} theme={theme} />;
     }, [data, theme]);
-
-    const handlePreviewRetry = useCallback(() => {
-        setPreviewRetryKey((prev) => prev + 1);
-    }, []);
 
     // ── Loading / 404 gates ──
     if (loadState === "loading") {
@@ -902,7 +801,7 @@ export default function EditorPage() {
                     onClick={() => router.push("/")}
                     className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs transition-colors"
                 >
-                    Back to dashboard
+                    Back to home
                 </button>
             </div>
         );
@@ -913,7 +812,10 @@ export default function EditorPage() {
             case "contact": return <ContactPanel />;
             case "summary": return <SummaryPanel />;
             case "experience": return <ExperiencePanel />;
+            case "education": return <EducationPanel />;
+            case "projects": return <ProjectsPanel />;
             case "skills": return <SkillsPanel />;
+            case "certifications": return <CertificationsPanel />;
             default: return (
                 <div className="text-sm text-zinc-500 text-center py-12">
                     {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} panel coming soon.
@@ -926,8 +828,8 @@ export default function EditorPage() {
         <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden">
 
             {/* ── TOP BAR ────────────────────────────────────── */}
-            <header className="h-12 flex items-center justify-between gap-3 px-4 border-b border-zinc-800/80 flex-shrink-0 bg-zinc-950/80 backdrop-blur-sm z-10">
-                <div className="min-w-0 flex items-center gap-4 overflow-x-auto">
+            <header className="h-12 flex items-center justify-between px-4 border-b border-zinc-800/80 flex-shrink-0 bg-zinc-950/80 backdrop-blur-sm z-10">
+                <div className="flex items-center gap-4">
                     {/* Logo */}
                     <span className="text-sm font-bold tracking-tight text-zinc-100">
                         Resume<span className="text-indigo-400">Forge</span>
@@ -943,7 +845,7 @@ export default function EditorPage() {
                     <StatusBar isDirty={isDirty} isSaving={isSaving} lastSavedAt={lastSavedAt} onSave={handleSave} />
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto">
+                <div className="flex items-center gap-2">
                     {/* View mode toggle */}
                     <div className="flex items-center bg-zinc-800/60 rounded-lg p-0.5 gap-0.5">
                         {([["split", Columns2], ["form", User], ["preview", Eye]] as const).map(([mode, Icon]) => (
@@ -1016,9 +918,11 @@ export default function EditorPage() {
                                 {theme.template}
                             </span>
                         </div>
-                        <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
+                        <div className="flex-1 overflow-hidden">
                             <Suspense fallback={<PDFSkeleton />}>
-                                <PDFPreview document={documentElement} />
+                                <PDFViewer width="100%" height="100%" showToolbar={false}>
+                                    {documentElement}
+                                </PDFViewer>
                             </Suspense>
                         </div>
                     </div>
