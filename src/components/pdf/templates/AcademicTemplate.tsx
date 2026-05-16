@@ -14,35 +14,42 @@ interface AcademicTemplateProps {
     theme: ThemeConfig;
 }
 
-function arrayOrEmpty<T>(items: T[] | undefined): T[] {
-    return Array.isArray(items) ? items : [];
+function safeArray<T>(value: T[] | undefined | null): T[] {
+    return Array.isArray(value) ? value : [];
 }
 
 function formatDate(dateStr?: string): string {
     if (!dateStr) return "Present";
 
     const [year, month] = dateStr.split("-");
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+
     const monthIndex = Number.parseInt(month ?? "", 10) - 1;
 
-    return Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex < months.length
-        ? `${months[monthIndex]} ${year}`
-        : year;
+    if (Number.isInteger(monthIndex) && monthIndex >= 0 && monthIndex < 12) {
+        return `${months[monthIndex]} ${year}`;
+    }
+
+    return year || "";
 }
 
 function makeStyles(theme: ThemeConfig) {
     const { colors, typography, spacing } = theme;
+    const base = typography.baseFontSize || 11;
 
     return StyleSheet.create({
         page: {
             fontFamily: typography.bodyFont,
-            fontSize: typography.baseFontSize,
-            lineHeight: typography.lineHeight,
+            fontSize: base,
             color: colors.text,
             backgroundColor: colors.background,
-            paddingHorizontal: spacing.pagePaddingX,
-            paddingVertical: spacing.pagePaddingY,
+            paddingHorizontal: spacing.pagePaddingX || 50,
+            paddingVertical: spacing.pagePaddingY || 45,
         },
+
         header: {
             marginBottom: 16,
             paddingBottom: 10,
@@ -50,122 +57,156 @@ function makeStyles(theme: ThemeConfig) {
             borderBottomColor: colors.primary,
             borderBottomStyle: "solid",
         },
+
         name: {
             fontFamily: typography.headingFont,
-            fontSize: typography.baseFontSize + 15,
+            fontSize: base + 15,
+            lineHeight: base + 20,
             fontWeight: 700,
             color: colors.primary,
             marginBottom: 5,
         },
+
         contactRow: {
             flexDirection: "row",
             flexWrap: "wrap",
-            gap: 9,
         },
+
         contactText: {
-            fontSize: typography.baseFontSize - 1,
+            fontSize: base - 1,
+            lineHeight: base + 4,
             color: colors.secondary,
+            marginRight: 9,
+            marginBottom: 4,
         },
+
         contactLink: {
-            fontSize: typography.baseFontSize - 1,
+            fontSize: base - 1,
+            lineHeight: base + 4,
             color: colors.primary,
             textDecoration: "none",
+            marginRight: 9,
+            marginBottom: 4,
         },
+
         section: {
-            marginBottom: spacing.sectionGap,
+            marginBottom: spacing.sectionGap || 18,
         },
+
         sectionHeading: {
             fontFamily: typography.headingFont,
-            fontSize: typography.baseFontSize + 2,
+            fontSize: base + 2,
+            lineHeight: base + 6,
             fontWeight: 700,
             color: colors.primary,
             textTransform: "uppercase",
             letterSpacing: 0.8,
             marginBottom: 5,
         },
+
         sectionRule: {
             borderBottomWidth: 0.75,
             borderBottomColor: colors.secondary,
             borderBottomStyle: "solid",
             marginBottom: 8,
         },
+
         paragraph: {
-            fontSize: typography.baseFontSize,
+            fontSize: base,
+            lineHeight: base + 5,
             color: colors.text,
-            lineHeight: typography.lineHeight,
         },
+
         entry: {
-            marginBottom: spacing.entryGap,
+            marginBottom: spacing.entryGap || 12,
         },
+
         entryHeader: {
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: 12,
             marginBottom: 2,
         },
+
         entryTitle: {
             flex: 1,
             fontFamily: typography.headingFont,
-            fontSize: typography.baseFontSize + 0.5,
+            fontSize: base + 0.5,
+            lineHeight: base + 5,
             fontWeight: 700,
             color: colors.primary,
+            marginRight: 12,
         },
+
         entryDate: {
-            fontSize: typography.baseFontSize - 1,
+            fontSize: base - 1,
+            lineHeight: base + 4,
             color: colors.secondary,
             fontStyle: "italic",
         },
+
         entryMeta: {
-            fontSize: typography.baseFontSize - 0.5,
+            fontSize: base - 0.5,
+            lineHeight: base + 4,
             color: colors.secondary,
             marginBottom: 4,
         },
+
         detail: {
-            fontSize: typography.baseFontSize - 0.5,
+            fontSize: base - 0.5,
+            lineHeight: base + 4,
             color: colors.text,
-            lineHeight: typography.lineHeight,
             marginBottom: 2,
         },
+
         bulletRow: {
             flexDirection: "row",
             marginBottom: 2,
         },
+
         bulletMarker: {
             width: 10,
-            fontSize: typography.baseFontSize - 1,
+            fontSize: base - 1,
+            lineHeight: base + 4,
             color: colors.primary,
         },
+
         bulletText: {
             flex: 1,
-            fontSize: typography.baseFontSize - 0.5,
+            fontSize: base - 0.5,
+            lineHeight: base + 4,
             color: colors.text,
-            lineHeight: typography.lineHeight,
         },
+
         skillsGrid: {
             flexDirection: "row",
             flexWrap: "wrap",
-            gap: 8,
         },
+
         skillGroup: {
             width: "48%",
-            marginBottom: 4,
+            marginRight: 8,
+            marginBottom: 6,
         },
+
         skillCategory: {
-            fontSize: typography.baseFontSize - 0.5,
+            fontSize: base - 0.5,
+            lineHeight: base + 4,
             fontWeight: 700,
             color: colors.primary,
             marginBottom: 1,
         },
+
         skillItems: {
-            fontSize: typography.baseFontSize - 0.5,
+            fontSize: base - 0.5,
+            lineHeight: base + 4,
             color: colors.text,
-            lineHeight: 1.4,
         },
+
         compactList: {
-            fontSize: typography.baseFontSize - 0.5,
+            fontSize: base - 0.5,
+            lineHeight: base + 4,
             color: colors.text,
-            lineHeight: 1.4,
         },
     });
 }
@@ -188,28 +229,50 @@ function Section({
     );
 }
 
-function Bullet({ text, styles }: { text: string; styles: ReturnType<typeof makeStyles> }) {
-    if (!text) return null;
+function Bullet({
+    text,
+    styles,
+}: {
+    text: string;
+    styles: ReturnType<typeof makeStyles>;
+}) {
+    const clean = typeof text === "string" ? text.trim() : "";
+    if (!clean) return null;
 
     return (
         <View style={styles.bulletRow}>
             <Text style={styles.bulletMarker}>-</Text>
-            <Text style={styles.bulletText}>{text}</Text>
+            <Text style={styles.bulletText}>{clean}</Text>
         </View>
     );
 }
 
 export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
     const styles = makeStyles(theme);
-    const contact = data.contact ?? { name: "" };
-    const experience = arrayOrEmpty(data.experience);
-    const education = arrayOrEmpty(data.education);
-    const projects = arrayOrEmpty(data.projects);
-    const skills = arrayOrEmpty(data.skills);
-    const certifications = arrayOrEmpty(data.certifications);
-    const languages = arrayOrEmpty(data.languages);
-    const volunteer = arrayOrEmpty(data.volunteer);
-    const keywords = skills.flatMap((group) => arrayOrEmpty(group.items)).join(", ");
+
+    const contact = data.contact ?? {
+        name: "",
+        email: "",
+        phone: "",
+        location: "",
+        website: "",
+        linkedin: "",
+        github: "",
+    };
+
+    const summary = typeof data.summary === "string" ? data.summary : "";
+    const experience = safeArray(data.experience);
+    const education = safeArray(data.education);
+    const projects = safeArray(data.projects);
+    const skills = safeArray(data.skills);
+    const certifications = safeArray(data.certifications);
+    const languages = safeArray(data.languages);
+    const volunteer = safeArray(data.volunteer);
+
+    const keywords = skills
+        .flatMap((group) => safeArray(group.items))
+        .filter(Boolean)
+        .join(", ");
 
     return (
         <Document
@@ -221,56 +284,77 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
             <Page size="LETTER" style={styles.page}>
                 <View style={styles.header}>
                     <Text style={styles.name}>{contact.name || "Your Name"}</Text>
+
                     <View style={styles.contactRow}>
                         {contact.email && (
                             <Link src={`mailto:${contact.email}`} style={styles.contactLink}>
-                                <Text>{contact.email}</Text>
+                                {contact.email}
                             </Link>
                         )}
-                        {contact.phone && <Text style={styles.contactText}>{contact.phone}</Text>}
-                        {contact.location && <Text style={styles.contactText}>{contact.location}</Text>}
+
+                        {contact.phone && (
+                            <Text style={styles.contactText}>{contact.phone}</Text>
+                        )}
+
+                        {contact.location && (
+                            <Text style={styles.contactText}>{contact.location}</Text>
+                        )}
+
                         {contact.linkedin && (
                             <Link src={contact.linkedin} style={styles.contactLink}>
-                                <Text>LinkedIn</Text>
+                                LinkedIn
                             </Link>
                         )}
+
                         {contact.github && (
                             <Link src={contact.github} style={styles.contactLink}>
-                                <Text>GitHub</Text>
+                                GitHub
                             </Link>
                         )}
+
                         {contact.website && (
                             <Link src={contact.website} style={styles.contactLink}>
-                                <Text>{contact.website.replace(/^https?:\/\//, "")}</Text>
+                                {contact.website.replace(/^https?:\/\//, "")}
                             </Link>
                         )}
                     </View>
                 </View>
 
-                {data.summary && (
+                {summary && (
                     <Section title="Research Profile" styles={styles}>
-                        <Text style={styles.paragraph}>{data.summary}</Text>
+                        <Text style={styles.paragraph}>{summary}</Text>
                     </Section>
                 )}
 
                 {education.length > 0 && (
                     <Section title="Education" styles={styles}>
-                        {education.map((edu) => (
-                            <View key={edu.id} style={styles.entry} wrap={false}>
+                        {education.map((edu, index) => (
+                            <View key={edu.id || `education-${index}`} style={styles.entry}>
                                 <View style={styles.entryHeader}>
                                     <Text style={styles.entryTitle}>
-                                        {edu.degree}{edu.field ? `, ${edu.field}` : ""}
+                                        {edu.degree || "Degree"}
+                                        {edu.field ? `, ${edu.field}` : ""}
                                     </Text>
-                                    <Text style={styles.entryDate}>{formatDate(edu.graduationDate)}</Text>
+
+                                    <Text style={styles.entryDate}>
+                                        {formatDate(edu.graduationDate)}
+                                    </Text>
                                 </View>
+
                                 <Text style={styles.entryMeta}>
-                                    {edu.institution}{edu.location ? `, ${edu.location}` : ""}
+                                    {edu.institution || "Institution"}
+                                    {edu.location ? `, ${edu.location}` : ""}
                                 </Text>
+
                                 {edu.gpa && <Text style={styles.detail}>GPA: {edu.gpa}</Text>}
-                                {edu.honors && <Text style={styles.detail}>{edu.honors}</Text>}
-                                {arrayOrEmpty(edu.coursework).length > 0 && (
+
+                                {edu.honors && (
+                                    <Text style={styles.detail}>{edu.honors}</Text>
+                                )}
+
+                                {safeArray(edu.coursework).length > 0 && (
                                     <Text style={styles.detail}>
-                                        Relevant coursework: {arrayOrEmpty(edu.coursework).join(", ")}
+                                        Relevant coursework: {safeArray(edu.coursework).join(", ")}
                                     </Text>
                                 )}
                             </View>
@@ -280,65 +364,108 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
 
                 {experience.length > 0 && (
                     <Section title="Appointments and Experience" styles={styles}>
-                        {experience.map((exp) => (
-                            <View key={exp.id} style={styles.entry} wrap={false}>
-                                <View style={styles.entryHeader}>
-                                    <Text style={styles.entryTitle}>{exp.role || "Role"}</Text>
-                                    <Text style={styles.entryDate}>
-                                        {formatDate(exp.startDate)} - {exp.current ? "Present" : formatDate(exp.endDate)}
+                        {experience.map((exp, index) => {
+                            const bullets = safeArray(exp.bullets);
+                            const technologies = safeArray(exp.technologies);
+
+                            return (
+                                <View key={exp.id || `experience-${index}`} style={styles.entry}>
+                                    <View style={styles.entryHeader}>
+                                        <Text style={styles.entryTitle}>{exp.role || "Role"}</Text>
+
+                                        <Text style={styles.entryDate}>
+                                            {formatDate(exp.startDate)} -{" "}
+                                            {exp.current ? "Present" : formatDate(exp.endDate)}
+                                        </Text>
+                                    </View>
+
+                                    <Text style={styles.entryMeta}>
+                                        {exp.company || "Organization"}
+                                        {exp.location ? `, ${exp.location}` : ""}
                                     </Text>
+
+                                    {bullets.map((bullet, bulletIndex) => (
+                                        <Bullet
+                                            key={bulletIndex}
+                                            text={bullet}
+                                            styles={styles}
+                                        />
+                                    ))}
+
+                                    {technologies.length > 0 && (
+                                        <Text style={styles.detail}>
+                                            Methods and tools: {technologies.join(", ")}
+                                        </Text>
+                                    )}
                                 </View>
-                                <Text style={styles.entryMeta}>
-                                    {exp.company || "Organization"}{exp.location ? `, ${exp.location}` : ""}
-                                </Text>
-                                {arrayOrEmpty(exp.bullets).map((bullet, index) => (
-                                    <Bullet key={index} text={bullet} styles={styles} />
-                                ))}
-                                {arrayOrEmpty(exp.technologies).length > 0 && (
-                                    <Text style={styles.detail}>
-                                        Methods and tools: {arrayOrEmpty(exp.technologies).join(", ")}
-                                    </Text>
-                                )}
-                            </View>
-                        ))}
+                            );
+                        })}
                     </Section>
                 )}
 
                 {projects.length > 0 && (
                     <Section title="Research and Projects" styles={styles}>
-                        {projects.map((project) => (
-                            <View key={project.id} style={styles.entry} wrap={false}>
-                                <View style={styles.entryHeader}>
-                                    <Text style={styles.entryTitle}>
-                                        {project.url ? <Link src={project.url}>{project.name}</Link> : project.name}
-                                    </Text>
-                                    {project.repoUrl && (
-                                        <Link src={project.repoUrl} style={styles.contactLink}>
-                                            <Text>Repository</Text>
-                                        </Link>
+                        {projects.map((project, index) => {
+                            const highlights = safeArray(project.highlights);
+                            const technologies = safeArray(project.technologies);
+
+                            return (
+                                <View key={project.id || `project-${index}`} style={styles.entry}>
+                                    <View style={styles.entryHeader}>
+                                        <Text style={styles.entryTitle}>
+                                            {project.url ? (
+                                                <Link src={project.url}>
+                                                    {project.name || "Project"}
+                                                </Link>
+                                            ) : (
+                                                project.name || "Project"
+                                            )}
+                                        </Text>
+
+                                        {project.repoUrl && (
+                                            <Link src={project.repoUrl} style={styles.contactLink}>
+                                                Repository
+                                            </Link>
+                                        )}
+                                    </View>
+
+                                    {project.description && (
+                                        <Text style={styles.detail}>{project.description}</Text>
+                                    )}
+
+                                    {highlights.map((highlight, highlightIndex) => (
+                                        <Bullet
+                                            key={highlightIndex}
+                                            text={highlight}
+                                            styles={styles}
+                                        />
+                                    ))}
+
+                                    {technologies.length > 0 && (
+                                        <Text style={styles.detail}>
+                                            Keywords: {technologies.join(", ")}
+                                        </Text>
                                     )}
                                 </View>
-                                {project.description && <Text style={styles.detail}>{project.description}</Text>}
-                                {arrayOrEmpty(project.highlights).map((highlight, index) => (
-                                    <Bullet key={index} text={highlight} styles={styles} />
-                                ))}
-                                {arrayOrEmpty(project.technologies).length > 0 && (
-                                    <Text style={styles.detail}>
-                                        Keywords: {arrayOrEmpty(project.technologies).join(", ")}
-                                    </Text>
-                                )}
-                            </View>
-                        ))}
+                            );
+                        })}
                     </Section>
                 )}
 
                 {skills.length > 0 && (
                     <Section title="Methods, Tools, and Skills" styles={styles}>
                         <View style={styles.skillsGrid}>
-                            {skills.map((group) => (
-                                <View key={group.category} style={styles.skillGroup}>
-                                    <Text style={styles.skillCategory}>{group.category}</Text>
-                                    <Text style={styles.skillItems}>{arrayOrEmpty(group.items).join(", ")}</Text>
+                            {skills.map((group, index) => (
+                                <View
+                                    key={group.category || `skill-${index}`}
+                                    style={styles.skillGroup}
+                                >
+                                    <Text style={styles.skillCategory}>
+                                        {group.category || "Skills"}
+                                    </Text>
+                                    <Text style={styles.skillItems}>
+                                        {safeArray(group.items).join(", ")}
+                                    </Text>
                                 </View>
                             ))}
                         </View>
@@ -347,17 +474,27 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
 
                 {certifications.length > 0 && (
                     <Section title="Certifications and Training" styles={styles}>
-                        {certifications.map((cert) => (
-                            <View key={cert.id} style={styles.entry} wrap={false}>
+                        {certifications.map((cert, index) => (
+                            <View key={cert.id || `cert-${index}`} style={styles.entry}>
                                 <View style={styles.entryHeader}>
                                     <Text style={styles.entryTitle}>
-                                        {cert.credentialUrl
-                                            ? <Link src={cert.credentialUrl}>{cert.name}</Link>
-                                            : cert.name}
+                                        {cert.credentialUrl ? (
+                                            <Link src={cert.credentialUrl}>
+                                                {cert.name || "Certification"}
+                                            </Link>
+                                        ) : (
+                                            cert.name || "Certification"
+                                        )}
                                     </Text>
-                                    <Text style={styles.entryDate}>{formatDate(cert.date)}</Text>
+
+                                    <Text style={styles.entryDate}>
+                                        {formatDate(cert.date)}
+                                    </Text>
                                 </View>
-                                <Text style={styles.entryMeta}>{cert.issuer}</Text>
+
+                                {cert.issuer && (
+                                    <Text style={styles.entryMeta}>{cert.issuer}</Text>
+                                )}
                             </View>
                         ))}
                     </Section>
@@ -366,21 +503,35 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
                 {languages.length > 0 && (
                     <Section title="Languages" styles={styles}>
                         <Text style={styles.compactList}>
-                            {languages.map((item) => `${item.language} (${item.proficiency})`).join("; ")}
+                            {languages
+                                .map((item) =>
+                                    `${item.language || "Language"}${item.proficiency ? ` (${item.proficiency})` : ""
+                                    }`
+                                )
+                                .join("; ")}
                         </Text>
                     </Section>
                 )}
 
                 {volunteer.length > 0 && (
                     <Section title="Service" styles={styles}>
-                        {volunteer.map((item) => (
-                            <View key={`${item.role}-${item.org}-${item.date}`} style={styles.entry} wrap={false}>
+                        {volunteer.map((item, index) => (
+                            <View
+                                key={`${item.role || "role"}-${item.org || "org"}-${index}`}
+                                style={styles.entry}
+                            >
                                 <View style={styles.entryHeader}>
-                                    <Text style={styles.entryTitle}>{item.role}</Text>
-                                    <Text style={styles.entryDate}>{item.date}</Text>
+                                    <Text style={styles.entryTitle}>
+                                        {item.role || "Volunteer Role"}
+                                    </Text>
+                                    <Text style={styles.entryDate}>{item.date || ""}</Text>
                                 </View>
-                                <Text style={styles.entryMeta}>{item.org}</Text>
-                                {item.summary && <Text style={styles.detail}>{item.summary}</Text>}
+
+                                {item.org && <Text style={styles.entryMeta}>{item.org}</Text>}
+
+                                {item.summary && (
+                                    <Text style={styles.detail}>{item.summary}</Text>
+                                )}
                             </View>
                         ))}
                     </Section>
