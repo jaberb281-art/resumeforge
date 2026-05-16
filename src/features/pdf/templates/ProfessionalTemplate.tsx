@@ -436,11 +436,12 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
 
                     <View style={styles.contactRow}>
                         {contact.email && (
-                            <Text style={styles.contactItem}>
-                                <Link src={`mailto:${contact.email}`} style={styles.contactLink}>
-                                    {contact.email}
-                                </Link>
-                            </Text>
+                            <Link
+                                src={`mailto:${contact.email}`}
+                                style={[styles.contactItem, styles.contactLink]}
+                            >
+                                {contact.email}
+                            </Link>
                         )}
 
                         {contact.phone && (
@@ -452,27 +453,30 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
                         )}
 
                         {contact.linkedin && (
-                            <Text style={styles.contactItem}>
-                                <Link src={contact.linkedin} style={styles.contactLink}>
-                                    LinkedIn
-                                </Link>
-                            </Text>
+                            <Link
+                                src={contact.linkedin}
+                                style={[styles.contactItem, styles.contactLink]}
+                            >
+                                LinkedIn
+                            </Link>
                         )}
 
                         {contact.github && (
-                            <Text style={styles.contactItem}>
-                                <Link src={contact.github} style={styles.contactLink}>
-                                    GitHub
-                                </Link>
-                            </Text>
+                            <Link
+                                src={contact.github}
+                                style={[styles.contactItem, styles.contactLink]}
+                            >
+                                GitHub
+                            </Link>
                         )}
 
                         {contact.website && (
-                            <Text style={styles.contactItem}>
-                                <Link src={contact.website} style={styles.contactLink}>
-                                    {contact.website.replace(/^https?:\/\//, "")}
-                                </Link>
-                            </Text>
+                            <Link
+                                src={contact.website}
+                                style={[styles.contactItem, styles.contactLink]}
+                            >
+                                {contact.website.replace(/^https?:\/\//, "")}
+                            </Link>
                         )}
                     </View>
                 </View>
@@ -545,20 +549,23 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
                             return (
                                 <View key={project.id || `project-${index}`} style={styles.entry}>
                                     <View style={styles.entryHeader}>
-                                        <Text style={styles.projectName}>
-                                            {project.url ? (
-                                                <Link src={project.url}>{project.name || "Project"}</Link>
-                                            ) : (
-                                                project.name || "Project"
-                                            )}
-                                        </Text>
+                                        {project.url ? (
+                                            <Link src={project.url} style={styles.projectName}>
+                                                {project.name || "Project"}
+                                            </Link>
+                                        ) : (
+                                            <Text style={styles.projectName}>
+                                                {project.name || "Project"}
+                                            </Text>
+                                        )}
 
                                         {project.repoUrl && (
-                                            <Text style={styles.entryDate}>
-                                                <Link src={project.repoUrl} style={styles.contactLink}>
-                                                    Source
-                                                </Link>
-                                            </Text>
+                                            <Link
+                                                src={project.repoUrl}
+                                                style={[styles.entryDate, styles.contactLink]}
+                                            >
+                                                Source
+                                            </Link>
                                         )}
                                     </View>
 

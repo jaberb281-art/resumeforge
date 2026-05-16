@@ -483,20 +483,23 @@ export function CreativeTemplate({ data, theme }: CreativeTemplateProps) {
                                 return (
                                     <View key={project.id || `project-${index}`} style={styles.entry}>
                                         <View style={styles.rowBetween}>
-                                            <Text style={styles.entryTitle}>
-                                                {project.url ? (
-                                                    <Link src={project.url}>
-                                                        {project.name || "Project"}
-                                                    </Link>
-                                                ) : (
-                                                    project.name || "Project"
-                                                )}
-                                            </Text>
+                                            {project.url ? (
+                                                <Link src={project.url} style={styles.entryTitle}>
+                                                    {project.name || "Project"}
+                                                </Link>
+                                            ) : (
+                                                <Text style={styles.entryTitle}>
+                                                    {project.name || "Project"}
+                                                </Text>
+                                            )}
 
                                             {project.repoUrl && (
-                                                <Text style={styles.entryDate}>
-                                                    <Link src={project.repoUrl}>Source</Link>
-                                                </Text>
+                                                <Link
+                                                    src={project.repoUrl}
+                                                    style={styles.entryDate}
+                                                >
+                                                    Source
+                                                </Link>
                                             )}
                                         </View>
 

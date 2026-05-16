@@ -31,7 +31,7 @@ const BlobProvider = dynamic(
     { ssr: false, loading: () => <PDFSkeleton /> }
 );
 
-import { getTemplate } from "@/components/pdf/templates/ProfessionalTemplate";
+import { getTemplate } from "@/features/pdf/registry";
 import type { DocumentProps } from "@react-pdf/renderer";
 
 function PDFPreview({ document: doc }: { document: React.ReactElement<DocumentProps> }) {

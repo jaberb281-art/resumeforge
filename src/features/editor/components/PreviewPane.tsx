@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Loader2 } from "lucide-react";
 import type { DocumentProps } from "@react-pdf/renderer";
@@ -21,26 +21,63 @@ const BlobProvider = dynamic(
     { ssr: false, loading: () => <PDFSkeleton /> }
 );
 
+function PDFFrame({
+    blob,
+    error,
+}: {
+    blob: Blob | null;
+    error: Error | null;
+}) {
+    const srcRef = useRef<string | null>(null);
+    const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+    useEffect(() => {
+        if (!blob) return;
+
+        const nextSrc = URL.createObjectURL(blob);
+        if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+        srcRef.current = nextSrc;
+        if (iframeRef.current) iframeRef.current.src = nextSrc;
+
+        return () => {
+            if (srcRef.current === nextSrc) {
+                URL.revokeObjectURL(nextSrc);
+                srcRef.current = null;
+            }
+        };
+    }, [blob]);
+
+    useEffect(() => {
+        return () => {
+            if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+            srcRef.current = null;
+        };
+    }, []);
+
+    if (error) {
+        return (
+            <div className="h-full flex items-center justify-center text-red-400 text-xs px-4 text-center">
+                Preview failed to render. Try exporting directly.
+            </div>
+        );
+    }
+
+    return (
+        <iframe
+            ref={iframeRef}
+            src="about:blank"
+            title="Resume preview"
+            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+        />
+    );
+}
+
 function PDFPreview({ document: doc }: { document: React.ReactElement<DocumentProps> }) {
     return (
         <BlobProvider document={doc}>
-            {({ url, loading, error }) => {
-                if (loading || !url) return <PDFSkeleton />;
-                if (error) {
-                    return (
-                        <div className="h-full flex items-center justify-center text-red-400 text-xs px-4 text-center">
-                            Preview failed to render. Try exporting directly.
-                        </div>
-                    );
-                }
-                return (
-                    <iframe
-                        src={url}
-                        title="Resume preview"
-                        style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                    />
-                );
-            }}
+            {({ blob, error }) => (
+                <PDFFrame blob={blob} error={error} />
+            )}
         </BlobProvider>
     );
 }

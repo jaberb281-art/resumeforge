@@ -150,6 +150,15 @@ export function EditorShell() {
         // eslint-disable-next-line react-hooks/static-components
         return <Template data={data} theme={theme} /> as React.ReactElement<DocumentProps>;
     }, [data, theme]);
+    const [previewDocumentElement, setPreviewDocumentElement] = useState(documentElement);
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setPreviewDocumentElement(documentElement);
+        }, 250);
+
+        return () => clearTimeout(t);
+    }, [documentElement]);
 
     if (loadState === "loading") {
         return (
@@ -203,7 +212,7 @@ export function EditorShell() {
 
                 {(previewMode === "split" || previewMode === "preview") && (
                     <PreviewPane
-                        documentElement={documentElement}
+                        documentElement={previewDocumentElement}
                         template={theme.template}
                         previewMode={previewMode}
                     />
