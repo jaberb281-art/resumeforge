@@ -431,7 +431,7 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
             creator="ResumeForge"
         >
             <Page size="LETTER" style={styles.page}>
-                <View style={styles.header}>
+                <View style={styles.header} wrap={false}>
                     <Text style={styles.headerName}>{contact.name || "Your Name"}</Text>
 
                     <View style={styles.contactRow}>

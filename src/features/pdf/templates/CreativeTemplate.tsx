@@ -310,41 +310,43 @@ export function CreativeTemplate({ data, theme }: CreativeTemplateProps) {
         >
             <Page size="LETTER" style={styles.page}>
                 <View style={styles.sidebar}>
-                    <Text style={styles.sidebarName}>{contact.name || "Your Name"}</Text>
+                    <View wrap={false}>
+                        <Text style={styles.sidebarName}>{contact.name || "Your Name"}</Text>
 
-                    <SidebarSection title="Contact" styles={styles}>
-                        {contact.email && (
-                            <Link src={`mailto:${contact.email}`} style={styles.sidebarLink}>
-                                {contact.email}
-                            </Link>
-                        )}
+                        <SidebarSection title="Contact" styles={styles}>
+                            {contact.email && (
+                                <Link src={`mailto:${contact.email}`} style={styles.sidebarLink}>
+                                    {contact.email}
+                                </Link>
+                            )}
 
-                        {contact.phone && (
-                            <Text style={styles.sidebarText}>{contact.phone}</Text>
-                        )}
+                            {contact.phone && (
+                                <Text style={styles.sidebarText}>{contact.phone}</Text>
+                            )}
 
-                        {contact.location && (
-                            <Text style={styles.sidebarText}>{contact.location}</Text>
-                        )}
+                            {contact.location && (
+                                <Text style={styles.sidebarText}>{contact.location}</Text>
+                            )}
 
-                        {contact.linkedin && (
-                            <Link src={contact.linkedin} style={styles.sidebarLink}>
-                                LinkedIn
-                            </Link>
-                        )}
+                            {contact.linkedin && (
+                                <Link src={contact.linkedin} style={styles.sidebarLink}>
+                                    LinkedIn
+                                </Link>
+                            )}
 
-                        {contact.github && (
-                            <Link src={contact.github} style={styles.sidebarLink}>
-                                GitHub
-                            </Link>
-                        )}
+                            {contact.github && (
+                                <Link src={contact.github} style={styles.sidebarLink}>
+                                    GitHub
+                                </Link>
+                            )}
 
-                        {contact.website && (
-                            <Link src={contact.website} style={styles.sidebarLink}>
-                                {contact.website.replace(/^https?:\/\//, "")}
-                            </Link>
-                        )}
-                    </SidebarSection>
+                            {contact.website && (
+                                <Link src={contact.website} style={styles.sidebarLink}>
+                                    {contact.website.replace(/^https?:\/\//, "")}
+                                </Link>
+                            )}
+                        </SidebarSection>
+                    </View>
 
                     {skills.length > 0 && (
                         <SidebarSection title="Skills" styles={styles}>
