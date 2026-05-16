@@ -347,12 +347,12 @@ export function CreativeTemplate({ data, theme }: CreativeTemplateProps) {
                     )}
                     {!!contact.linkedin?.trim() && (
                         <Link src={safeUrl(contact.linkedin)} style={styles.sidebarLink}>
-                            LinkedIn
+                            {contact.linkedin.trim().replace(/^https?:\/\//, "")}
                         </Link>
                     )}
                     {!!contact.github?.trim() && (
                         <Link src={safeUrl(contact.github)} style={styles.sidebarLink}>
-                            GitHub
+                            {contact.github.trim().replace(/^https?:\/\//, "")}
                         </Link>
                     )}
                     {!!contact.website?.trim() && (

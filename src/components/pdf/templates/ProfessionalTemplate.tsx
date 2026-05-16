@@ -357,14 +357,14 @@ export function ProfessionalTemplate({ data, theme }: ProfessionalTemplateProps)
                         {!!contact.linkedin?.trim() && (
                             <View style={styles.contactItem}>
                                 <Link src={safeUrl(contact.linkedin)} style={styles.contactLink}>
-                                    LinkedIn
+                                    {contact.linkedin.trim().replace(/^https?:\/\//, "")}
                                 </Link>
                             </View>
                         )}
                         {!!contact.github?.trim() && (
                             <View style={styles.contactItem}>
                                 <Link src={safeUrl(contact.github)} style={styles.contactLink}>
-                                    GitHub
+                                    {contact.github.trim().replace(/^https?:\/\//, "")}
                                 </Link>
                             </View>
                         )}
