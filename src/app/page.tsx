@@ -9,9 +9,9 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createResumeAction } from "./_actions/create-resume";
-import { AiUsageBadge } from "./_components/AiUsageBadge";
-import { ResumeList, type ResumeRow } from "./_components/ResumeList";
+import { createResumeAction } from "@/features/resumes/actions/create-resume";
+import { AiUsageBadge } from "@/features/ai/components/AiUsageBadge";
+import { ResumeList, type ResumeRow } from "@/features/resumes/components/ResumeList";
 import { Plus, LogOut } from "lucide-react";
 
 export const dynamic = "force-dynamic";

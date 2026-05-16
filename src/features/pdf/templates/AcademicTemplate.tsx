@@ -418,18 +418,15 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
                             return (
                                 <View key={project.id || `project-${index}`} style={styles.entry}>
                                     <View style={styles.entryHeader}>
-                                        {project.url ? (
-                                            <Link
-                                                src={project.url}
-                                                style={styles.entryTitle}
-                                            >
-                                                {project.name || "Project"}
-                                            </Link>
-                                        ) : (
-                                            <Text style={styles.entryTitle}>
-                                                {project.name || "Project"}
-                                            </Text>
-                                        )}
+                                        <Text style={styles.entryTitle}>
+                                            {project.url ? (
+                                                <Link src={project.url}>
+                                                    {project.name || "Project"}
+                                                </Link>
+                                            ) : (
+                                                project.name || "Project"
+                                            )}
+                                        </Text>
 
                                         {project.repoUrl && (
                                             <Link src={project.repoUrl} style={styles.contactLink}>
@@ -486,18 +483,15 @@ export function AcademicTemplate({ data, theme }: AcademicTemplateProps) {
                         {certifications.map((cert, index) => (
                             <View key={cert.id || `cert-${index}`} style={styles.entry}>
                                 <View style={styles.entryHeader}>
-                                    {cert.credentialUrl ? (
-                                        <Link
-                                            src={cert.credentialUrl}
-                                            style={styles.entryTitle}
-                                        >
-                                            {cert.name || "Certification"}
-                                        </Link>
-                                    ) : (
-                                        <Text style={styles.entryTitle}>
-                                            {cert.name || "Certification"}
-                                        </Text>
-                                    )}
+                                    <Text style={styles.entryTitle}>
+                                        {cert.credentialUrl ? (
+                                            <Link src={cert.credentialUrl}>
+                                                {cert.name || "Certification"}
+                                            </Link>
+                                        ) : (
+                                            cert.name || "Certification"
+                                        )}
+                                    </Text>
 
                                     <Text style={styles.entryDate}>
                                         {formatDate(cert.date)}
