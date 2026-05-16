@@ -34,35 +34,70 @@ const BlobProvider = dynamic(
 import { getTemplate } from "@/features/pdf/registry";
 import type { DocumentProps } from "@react-pdf/renderer";
 
+function PDFFrame({
+    blob,
+    error,
+}: {
+    blob: Blob | null;
+    error: Error | null;
+}) {
+    const srcRef = useRef<string | null>(null);
+    const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+    useEffect(() => {
+        if (!blob) return;
+
+        const nextSrc = URL.createObjectURL(blob);
+        if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+        srcRef.current = nextSrc;
+        if (iframeRef.current) iframeRef.current.src = nextSrc;
+
+        return () => {
+            if (srcRef.current === nextSrc) {
+                URL.revokeObjectURL(nextSrc);
+                srcRef.current = null;
+            }
+        };
+    }, [blob]);
+
+    useEffect(() => {
+        return () => {
+            if (srcRef.current) URL.revokeObjectURL(srcRef.current);
+            srcRef.current = null;
+        };
+    }, []);
+
+    if (error) {
+        console.error("[pdf preview] BlobProvider failed", error);
+        return (
+            <div className="h-full flex items-center justify-center text-red-400 text-xs px-4 text-center">
+                Preview failed to render. Try exporting directly.
+            </div>
+        );
+    }
+
+    return (
+        <iframe
+            ref={iframeRef}
+            src="about:blank"
+            title="Resume preview"
+            style={{
+                width: "100%",
+                height: "100%",
+                border: "none",
+                display: "block",
+                background: "#2a2a2a",
+            }}
+        />
+    );
+}
+
 function PDFPreview({ document: doc }: { document: React.ReactElement<DocumentProps> }) {
     return (
         <BlobProvider document={doc}>
-            {({ url, loading, error }) => {
-                if (loading || !url) return <PDFSkeleton />;
-
-                if (error) {
-                    console.error("[pdf preview] BlobProvider failed", error);
-                    return (
-                        <div className="h-full flex items-center justify-center text-red-400 text-xs px-4 text-center">
-                            Preview failed to render. Try exporting directly.
-                        </div>
-                    );
-                }
-
-                return (
-                    <iframe
-                        src={url}
-                        title="Resume preview"
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            border: "none",
-                            display: "block",
-                            background: "#2a2a2a",
-                        }}
-                    />
-                );
-            }}
+            {({ blob, error }) => (
+                <PDFFrame blob={blob} error={error} />
+            )}
         </BlobProvider>
     );
 }
@@ -811,6 +846,15 @@ export default function EditorPage() {
         // eslint-disable-next-line react-hooks/static-components
         return <Template data={data} theme={theme} /> as React.ReactElement<DocumentProps>;
     }, [data, theme]);
+    const [previewDocumentElement, setPreviewDocumentElement] = useState(documentElement);
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setPreviewDocumentElement(documentElement);
+        }, 250);
+
+        return () => clearTimeout(t);
+    }, [documentElement]);
 
     // ── Loading / 404 gates ──
     if (loadState === "loading") {
@@ -949,9 +993,9 @@ export default function EditorPage() {
                                 {theme.template}
                             </span>
                         </div>
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 overflow-hidden" style={{ minHeight: 0 }}>
                             <Suspense fallback={<PDFSkeleton />}>
-                                <PDFPreview document={documentElement} />
+                                <PDFPreview document={previewDocumentElement} />
                             </Suspense>
                         </div>
                     </div>
