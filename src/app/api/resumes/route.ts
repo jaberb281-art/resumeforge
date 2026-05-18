@@ -7,16 +7,10 @@
 // =============================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createResumePayloadSchema } from "@/features/resumes/schemas";
 
 export const dynamic = "force-dynamic";
-
-const createSchema = z.object({
-    title: z.string().min(1).max(200).optional(),
-    resume_data: z.record(z.unknown()).optional(),
-    theme_config: z.record(z.unknown()).optional(),
-});
 
 // ── GET /api/resumes ─────────────────────────────────────────
 export async function GET() {
@@ -56,7 +50,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const parsed = createSchema.safeParse(body);
+    const parsed = createResumePayloadSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
             { error: "Invalid payload", issues: parsed.error.issues },

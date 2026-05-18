@@ -2,6 +2,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import {
+    completeAiUsage,
+    releaseAiUsageReservation,
+    reserveAiUsage,
+} from "@/features/ai/server/quota";
 
 export const dynamic = "force-dynamic";
 
@@ -68,19 +73,6 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { data: limits } = await supabase
-            .from("plan_limits")
-            .select("ai_tailoring")
-            .eq("user_id", user.id)
-            .single();
-
-        if (!limits?.ai_tailoring) {
-            return NextResponse.json(
-                { error: "AI features require a Pro subscription.", upgradeRequired: true },
-                { status: 402 }
-            );
-        }
-
         let body: unknown;
         try {
             body = await req.json();
@@ -110,31 +102,52 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "AI service unavailable" }, { status: 503 });
         }
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-            systemInstruction: "You are a precise professional cover letter writer. Return plain text only.",
-            generationConfig: {
-                temperature: 0.6,
-            },
-        });
-
-        const prompt = buildPrompt({
-            data: parsed.data.data,
-            jobTitle: parsed.data.jobTitle.trim(),
-            companyName: parsed.data.companyName.trim(),
-            jobDescription: parsed.data.jobDescription?.trim() ?? "",
-            tone: parsed.data.tone ?? "professional",
-        });
-
-        const result = await model.generateContent(prompt);
-        const coverLetter = result.response.text().trim();
-
-        if (!coverLetter) {
-            return NextResponse.json({ error: "AI returned an empty response" }, { status: 502 });
+        const quota = await reserveAiUsage(supabase, "cover_letter");
+        if (!quota.ok) {
+            return NextResponse.json(
+                {
+                    error: quota.denied.error,
+                    upgradeRequired: quota.denied.upgradeRequired,
+                },
+                { status: quota.denied.status }
+            );
         }
 
-        return NextResponse.json({ coverLetter });
+        let quotaCompleted = false;
+        try {
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.5-flash",
+                systemInstruction: "You are a precise professional cover letter writer. Return plain text only.",
+                generationConfig: {
+                    temperature: 0.6,
+                },
+            });
+
+            const prompt = buildPrompt({
+                data: parsed.data.data,
+                jobTitle: parsed.data.jobTitle.trim(),
+                companyName: parsed.data.companyName.trim(),
+                jobDescription: parsed.data.jobDescription?.trim() ?? "",
+                tone: parsed.data.tone ?? "professional",
+            });
+
+            const result = await model.generateContent(prompt);
+            const coverLetter = result.response.text().trim();
+
+            if (!coverLetter) {
+                return NextResponse.json({ error: "AI returned an empty response" }, { status: 502 });
+            }
+
+            await completeAiUsage(supabase, quota.reservation.logId);
+            quotaCompleted = true;
+
+            return NextResponse.json({ coverLetter });
+        } finally {
+            if (!quotaCompleted) {
+                await releaseAiUsageReservation(supabase, quota.reservation.logId);
+            }
+        }
     } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         console.error("[/api/cv/cover-letter]", message);

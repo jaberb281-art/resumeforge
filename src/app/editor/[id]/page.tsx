@@ -717,7 +717,7 @@ export default function EditorPage() {
     const {
         data, theme, resumeTitle, isDirty, isSaving, lastSavedAt, previewMode,
         activeSection, setActiveSection, setPreviewMode, setIsSaving, markSaved, setResumeTitle,
-        loadResume, resetToEmpty,
+        hydrateResume, resetToEmpty,
     } = store;
 
     const router = useRouter();
@@ -788,8 +788,7 @@ export default function EditorPage() {
                     },
                 };
 
-                loadResume(r.id, resumeData, themeConfig);
-                setResumeTitle(r.title);
+                hydrateResume(r.id, r.title, resumeData, themeConfig);
                 setLoadState("ready");
             } catch (err) {
                 if (cancelled) return;
@@ -799,7 +798,7 @@ export default function EditorPage() {
         })();
 
         return () => { cancelled = true; };
-    }, [resumeId, loadResume, setResumeTitle]);
+    }, [resumeId, hydrateResume]);
 
     // ── Auto-save: debounced on stable refs so typing doesn't reset it ──
     // The previous implementation re-armed the timer on every keystroke (data

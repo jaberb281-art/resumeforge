@@ -21,16 +21,21 @@ export async function GET() {
         return NextResponse.json({ error: "Could not load AI limits" }, { status: 500 });
     }
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const todayStart = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate()
+    ));
 
     const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    tomorrowStart.setUTCDate(tomorrowStart.getUTCDate() + 1);
 
     const { count, error: logsError } = await supabase
         .from("ai_tailor_logs")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id)
+        .not("completed_at", "is", null)
         .gte("created_at", todayStart.toISOString())
         .lt("created_at", tomorrowStart.toISOString());
 

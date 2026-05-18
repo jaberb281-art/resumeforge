@@ -327,6 +327,7 @@ interface ResumeStore {
 
     // ─── PERSISTENCE ACTIONS ────────────────────────────────
 
+    hydrateResume: (id: string, title: string, data: ResumeData, theme: ThemeConfig) => void;
     loadResume: (id: string, data: ResumeData, theme: ThemeConfig) => void;
     setIsSaving: (saving: boolean) => void;
     markSaved: () => void;
@@ -566,6 +567,17 @@ export const useResumeStore = create<ResumeStore>()(
                     }),
 
                 // ── Persistence ──
+                hydrateResume: (id, title, data, theme) =>
+                    set((s) => {
+                        s.resumeId = id;
+                        s.resumeTitle = title;
+                        s.data = data;
+                        s.theme = theme;
+                        s.isDirty = false;
+                        s.isSaving = false;
+                        s.matchAnalysis = null;
+                    }),
+
                 loadResume: (id, data, theme) =>
                     set((s) => {
                         s.resumeId = id;

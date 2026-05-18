@@ -11,16 +11,10 @@
 // =============================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { patchResumePayloadSchema } from "@/features/resumes/schemas";
 
 export const dynamic = "force-dynamic";
-
-const patchSchema = z.object({
-    title: z.string().min(1).max(200).optional(),
-    resume_data: z.record(z.unknown()).optional(),
-    theme_config: z.record(z.unknown()).optional(),
-});
 
 interface Ctx {
     params: Promise<{ id: string }>;
@@ -68,7 +62,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const parsed = patchSchema.safeParse(body);
+    const parsed = patchResumePayloadSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
             { error: "Invalid payload", issues: parsed.error.issues },
@@ -104,13 +98,19 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from("resumes")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true });

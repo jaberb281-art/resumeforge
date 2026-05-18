@@ -45,8 +45,8 @@ export function EditorShell() {
     const store = useResumeStore();
     const {
         data, theme, isDirty, previewMode,
-        activeSection, setIsSaving, markSaved, setResumeTitle,
-        loadResume, resetToEmpty,
+        activeSection, setIsSaving, markSaved,
+        hydrateResume, resetToEmpty,
     } = store;
 
     const router = useRouter();
@@ -106,8 +106,7 @@ export function EditorShell() {
                     },
                 };
 
-                loadResume(r.id, resumeData, themeConfig);
-                setResumeTitle(r.title);
+                hydrateResume(r.id, r.title, resumeData, themeConfig);
                 setLoadState("ready");
             } catch (err) {
                 if (cancelled) return;
@@ -117,7 +116,7 @@ export function EditorShell() {
         })();
 
         return () => { cancelled = true; };
-    }, [resumeId, loadResume, setResumeTitle]);
+    }, [resumeId, hydrateResume]);
 
     const saveRef = useRef(handleSave);
     useEffect(() => { saveRef.current = handleSave; }, [handleSave]);
